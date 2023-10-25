@@ -90,7 +90,7 @@ params_space = [
 
 algorithms = ['DT', 'KNN', 'LR']
 
-for alg in algorithms[]:
+for alg in algorithms:
     path_alg = path_res + f'\\{alg}'
     os.makedirs(path_alg, exist_ok=True)
 
