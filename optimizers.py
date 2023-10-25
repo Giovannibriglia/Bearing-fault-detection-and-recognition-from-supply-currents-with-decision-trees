@@ -83,8 +83,7 @@ params_space = [
     'p': hp.randint('p', 1, 5)
     }, {
     'C': hp.loguniform('C',-10,1),
-    'tol': hp.loguniform('tol',-13,-1),
-    'l1_ratio': hp.uniform('l1_ratio',0,1)
+    'tol': hp.loguniform('tol',-13,-1)
     }
 ]
 
@@ -181,13 +180,14 @@ for alg in algorithms:
                     plt.savefig(f'{path_alg_singleDf_plotsTree}\\PlotTree_{load}_{filename}.jpg')
 
                 parameters = list(params_space[algorithms.index(alg)].keys())
-                n_rows = int(len(parameters) / 2)
-                n_cols = len(parameters) - n_rows
-                if len(parameters) % 2 != 0:
-                    n_rows += 1
-                row_plot, col_plot = 0, 0
-
-                fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols, dpi=500)
+                if len(parameters) > 3:
+                    n_rows = int(len(parameters) / 2)
+                    n_cols = len(parameters) - n_rows
+                    row_plot, col_plot = 0, 0
+                    fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols, dpi=500)
+                else:
+                    col_plot = 0
+                    fig, axes = plt.subplots(nrows=1, ncols=len(parameters), dpi=500)
                 fig.tight_layout(pad=4)
                 fig.suptitle(f'{alg} - Load {load} - tuning - {filename}', fontsize=15)
                 cmap = plt.cm.jet
@@ -197,14 +197,22 @@ for alg in algorithms:
                     xs, ys = zip(*sorted(zip(xs, ys)))
                     ys = np.array(ys)
 
-                    axes[row_plot, col_plot].scatter(xs, ys, linewidth=0.01, alpha=0.5, c=cmap(float(i)/len(parameters)))
-                    axes[row_plot, col_plot].set_title(val, fontsize=10)
+                    if len(parameters) > 3:
+                        axes[row_plot, col_plot].scatter(xs, ys, linewidth=0.01, alpha=0.5, c=cmap(float(i)/len(parameters)))
+                        axes[row_plot, col_plot].set_title(val, fontsize=10)
 
-                    if row_plot+1 < n_rows:
-                        row_plot += 1
+                        if col_plot+1 == n_cols:
+                            col_plot = 0
+                            row_plot += 1
+                        else:
+                            col_plot += 1
                     else:
+                        axes[col_plot].scatter(xs, ys, linewidth=0.01, alpha=0.5, c=cmap(float(i)/len(parameters)))
+                        axes[col_plot].set_title(val, fontsize=10)
+
                         col_plot += 1
-                        row_plot = 0
+
+
                 fig.supxlabel('Parameter values')
                 fig.supylabel('Loss')
                 path_alg_singleDf_Hypers = path_alg_singleDf + '\\Hyper Parameters Tuning'
@@ -212,6 +220,7 @@ for alg in algorithms:
                 plt.savefig(f'{path_alg_singleDf_Hypers}\\HyperPars_{load}_{filename}.jpg')
                 plt.show()
 
+                plt.close()
 
             print('\nMean test accuracy: ', round(mean_accuracy*100/len(loads), 2), ' %')
             table_out.to_excel(f'{path_alg_singleDf}\\res_hyperopt.xlsx')

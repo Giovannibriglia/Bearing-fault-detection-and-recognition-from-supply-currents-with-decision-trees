@@ -2,7 +2,6 @@ import split_TEST
 import split_TRAIN
 import split_VALIDATION
 import pandas as pd
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn import tree, metrics
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,17 +31,16 @@ def get_best_parameters(df_par, par1, par2):
 def evaluate_undamaged(predictions, k):
 
     predictions = list(predictions)
-    predictions.append(0)
     aux = 0
     count_damaged = 0
-    for i in range(0, len(predictions), 1):
+    for i in range(0, len(predictions)-1, 1):
         if predictions[i] == 1 and predictions[i+1] == 1:
             aux = aux + 1
         elif aux > count_damaged:
             count_damaged = aux
             aux = 0
 
-    if count_damaged+1 > k:
+    if count_damaged > k:
         return 'no'
     else:
         return 'ok'
@@ -59,7 +57,7 @@ def evaluate_damaged(predictions, k):
             count_damaged = aux
             aux = 0
 
-    if count_damaged+1 > k:
+    if count_damaged < k:
         return 'ok'
     else:
         return 'no'
