@@ -1,4 +1,4 @@
-File contenenti lo space vector di corrente delle tre fasi di alimentazione (alle correnti è stato tolto l'offset DC).
-Numero complesso in formato cartesiano (parte reale e parte immaginaria).
+File containing the current space vector of the three power phases (the DC offset has been removed from the currents).
+Complex number in Cartesian format (real part and imaginary part).
 
 Sample rate = 25600 Hz
