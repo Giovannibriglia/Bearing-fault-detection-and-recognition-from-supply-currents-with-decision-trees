@@ -85,7 +85,7 @@ for k_bits in range(start_k, max_k + 1, 1):
         par2_test = loads[i]
 
         dataTrainVal = split_TRAIN.TRAIN(df_in, par1_test, par2_test)
-        dataset_validation, dataset_train = split_VALIDATION.setVal(dataTrainVal, val_size=0.01)
+        dataset_validation, dataset_train = split_VALIDATION.setVal(dataTrainVal, val_size=0.1)
         dataset_test = split_TEST.TEST(df_in, par1_test, par2_test)
 
         final_col = len(df_in.columns) - 1
