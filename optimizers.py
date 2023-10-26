@@ -41,30 +41,6 @@ def f(params):
     return {'loss': 1 - round(accuracy, 3), 'status': STATUS_OK}
 
 
-"""
-def f(params):
-    model = DecisionTreeClassifier(**params)
-    if n_classes == 2:
-        kf = model_selection.StratifiedKFold(n_splits=5)
-    else:
-        kf = model_selection.KFold(n_splits=5)
-    accuracies = []
-    for idx in kf.split(X=X_val, y=y_val):
-        train_idx, test_idx = idx[0], idx[1]
-        x_train = X_val[train_idx]
-        y_train = y_val[train_idx]
-
-        x_test = X_val[test_idx]
-        y_test = y_val[test_idx]
-
-        model.fit(x_train, y_train)
-        preds = model.predict(x_test)
-        accuracy = metrics.accuracy_score(y_test, preds)
-        accuracies.append(accuracy)
-
-    return {'loss': 1 - round(np.mean(accuracies), 3), 'status': STATUS_OK}
-"""
-
 loads = ['R1', 'R2', 'R3',
          'T1', 'T2', 'T3',
          'R1_T1', 'R1_T2', 'R1_T3',
