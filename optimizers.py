@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from hyperopt import hp, fmin, tpe, Trials, STATUS_OK
 from matplotlib import pyplot as plt
-from scipy.ndimage import gaussian_filter1d
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
@@ -17,7 +16,7 @@ import split_VALIDATION
 
 warnings.filterwarnings('ignore')
 
-gaus_filt_ord = 6
+
 max_evals = 2500
 path_res = 'results'
 path_input = 'dataframes'
@@ -76,11 +75,7 @@ params_space = [
     }
 ]
 
-accuracies_val_opt = []
-accuracies_test_opt = []
-accuracies_train_opt = []
-
-for alg in algorithms:
+for alg in algorithms[:1]:
     path_alg = path_res + f'\\{alg}'
     os.makedirs(path_alg, exist_ok=True)
 
@@ -129,6 +124,10 @@ for alg in algorithms:
                 X_test = dataset_test[feature_names]
                 y_test = dataset_test['D_class']
 
+                accuracies_val_opt = []
+                accuracies_test_opt = []
+                accuracies_train_opt = []
+
                 trials = Trials()
                 best = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
                             trials=trials, loss_threshold=0.01, max_queue_len=int(max_evals/5))
@@ -137,7 +136,7 @@ for alg in algorithms:
                 path_alg_singleDf_OptGraph = path_alg_singleDf + '\\Optimization Graphs'
                 os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)
                 fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}')
-                interval_size = int(max_evals/6)
+                interval_size = int(max_evals/5)
                 labels_plot_opt = ['test', 'val', 'train']
                 c = ['blue', 'orange', 'green']
                 series_opt = [accuracies_test_opt, accuracies_val_opt, accuracies_train_opt]
@@ -218,10 +217,10 @@ for alg in algorithms:
                     os.makedirs(path_alg_singleDf_FeatImp, exist_ok=True)
                     for feat_num in range(len(clf.feature_importances_)):
                         if clf.feature_importances_[feat_num] > 0:
-                            vet_val_feat_imp.append(clf.feature_importances_[feat_num])
+                            vet_val_feat_imp.append(round(clf.feature_importances_[feat_num], 3))
                             vet_names_feat_imp.append(feature_names[feat_num - 1])
 
-                    dict_feat_imp = dict(zip(vet_names_feat_imp, round(vet_val_feat_imp, 2)))
+                    dict_feat_imp = dict(zip(vet_names_feat_imp, vet_val_feat_imp))
 
                     fig = plt.figure(dpi=500)
                     plt.bar(vet_names_feat_imp, vet_val_feat_imp)
