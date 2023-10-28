@@ -13,8 +13,8 @@ warnings.filterwarnings('ignore')
 
 sample_rate_cutted = 25000
 seconds_of_acquistion = 10
-path = 'Curr_SV_NO_offset'
-
+path_inputs = 'Curr_SV_NO_offset'
+path_saving = 'dataframes'
 
 def removing_50Hz_reference(data, time_in_sec, if_vis):
     vet = []
@@ -43,6 +43,7 @@ def removing_50Hz_reference(data, time_in_sec, if_vis):
         plt.plot(vet_unwrapped, label='unwrapped phase', linewidth=3)
         plt.plot(linear_function, label='linear function')
         plt.legend(loc='best')
+        plt.grid()
 
     return vetFin_no_offset
 
@@ -74,7 +75,7 @@ def normalize_column(col):
 
 
 features_names = ['mean', 'max', 'kurt', 'skew', 'mad', 'percScore', 'entropy','score_at_perc', 'coef_var', 'coef_kstatvar', 'min', 'std_class', 'var']
-os.makedirs('dataframes', exist_ok=True)
+os.makedirs(path_saving, exist_ok=True)
 
 for max_frequency in [375, 125, 75]:
     for n_classes in [2, 3]:
@@ -95,10 +96,10 @@ for max_frequency in [375, 125, 75]:
         row_number = 0
         half_sample_rate = int(sample_rate_cutted / 2)
 
-        for filename in glob.glob(f"{path}\*.csv"):
+        for filename in glob.glob(f"{path_inputs}\*.csv"):
             with open(os.path.join(os.getcwd(), filename), "r") as f:
                     data = pd.read_csv(filename)
-                    name = filename.replace(f'{path}\\', '')
+                    name = filename.replace(f'{path_inputs}\\', '')
                     name = name.replace('.csv', '')
                     print(name, '-', n_classes, 'classes - until ', max_frequency, ' Hz' )
                     indexD = int(name[name.index('D')+1])
@@ -109,7 +110,7 @@ for max_frequency in [375, 125, 75]:
 
                     for count in range(half_sample_rate, len(data) + half_sample_rate, half_sample_rate):
 
-                        if count == half_sample_rate and indexT+indexR+indexD==1000:
+                        if count == half_sample_rate and indexT+indexR+indexD==3:
                             if_vis=True
                         else:
                             if_vis=False
@@ -132,6 +133,7 @@ for max_frequency in [375, 125, 75]:
                             plt.plot(vet_without_50ref[0:2500], label='pre')
                             plt.plot(vet_Notch[0:2500], label='post')
                             plt.legend(loc='best')
+                            plt.grid()
 
                             yfl_wrong, xfl_wrong = FFT(vet=vet_without_50ref, time_in_sec=1)
 
@@ -140,6 +142,7 @@ for max_frequency in [375, 125, 75]:
                             plt.plot(xfl[:500], yfl[:500], label='cleaned', linewidth=3)
                             plt.plot(xfl_wrong[:500], yfl_wrong[:500], label='not cleaned')
                             plt.legend(loc='best')
+                            plt.grid()
                             plt.show()
 
                         row = []
@@ -198,7 +201,7 @@ for max_frequency in [375, 125, 75]:
         print('Removed features: ', to_del)
         df2 = df.drop(df.columns[to_del], axis=1, inplace=False)
 
-        df2.to_pickle(f'dataframes\\{max_frequency}Hz_{n_classes}classes.pkl')
+        df2.to_pickle(f'{path_saving}\\{max_frequency}Hz_{n_classes}classes.pkl')
 
         print('normalizing...')
         features_to_normalize = df2.columns.to_list()[1:-1]
@@ -208,6 +211,6 @@ for max_frequency in [375, 125, 75]:
             print('error2')
         df2[features_to_normalize] = df2[features_to_normalize].apply(normalize_column)
 
-        df2.to_pickle(f'dataframes\\{max_frequency}Hz_{n_classes}classes_normalized.pkl')
+        df2.to_pickle(f'{path_saving}\\{max_frequency}Hz_{n_classes}classes_normalized.pkl')
 
 
