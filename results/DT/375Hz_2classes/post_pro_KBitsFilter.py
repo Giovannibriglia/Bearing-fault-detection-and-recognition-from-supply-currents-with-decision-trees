@@ -2,14 +2,13 @@ import split_TEST
 import split_TRAIN
 import split_VALIDATION
 import pandas as pd
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn import tree, metrics
 import numpy as np
 import matplotlib.pyplot as plt
 
 label_size_plot = 12
 fontsize = 12
-start_k, max_k, step_k = 0, 10, 1
+start_k, max_k, step_k = 0, 20, 1
 
 path_parameters = 'res_hyperopt.pkl'
 df_in = pd.read_pickle('375Hz_2classes.pkl')
@@ -74,7 +73,6 @@ loads = ['R1', 'R2', 'R3',
          'R2_T1', 'R2_T2', 'R2_T3',
          'R3_T1', 'R3_T2', 'R3_T3']
 
-
 df_best_parameters = pd.read_pickle(path_parameters)
 
 vetAcc = []
@@ -122,23 +120,19 @@ for k_bits in range(start_k, max_k + 1, step_k):
         p_test = clf.predict(X_test)
         previous_acc_test = metrics.accuracy_score(y_test, p_test)
 
-        """
-        new_p_undamaged = evaluate_undamaged(p_test[0:int(len(p_test) / 3)], k_bits)
-        new_p_damaged = evaluate_damaged(p_test[int(len(p_test) / 3):len(p_test)], k_bits)
+        new_p_undamaged = neighbors_based_filter(p_test[0:int(len(p_test) / 3)], k_bits)
+        new_p_damaged = neighbors_based_filter(p_test[int(len(p_test) / 3):len(p_test)], k_bits)
 
         p_test_new = []
         p_test_new.extend(new_p_undamaged)
-        p_test_new.extend(new_p_damaged)"""
-        p_test_new = neighbors_based_filter(p_test, k_bits)
-
-        acc_train = metrics.accuracy_score(y_train, p_train)
+        p_test_new.extend(new_p_damaged)
 
         acc_test = metrics.accuracy_score(y_test, p_test_new)
         rec = metrics.recall_score(y_test, p_test_new)
         f1 = metrics.f1_score(y_test, p_test_new)
         prec = metrics.precision_score(y_test, p_test_new)
 
-        print(f'{loads[i]}) New test accuracy: {round(acc_test * 100, 2)} % - Past test accuracy: {round(previous_acc_test * 100, 0)} %')
+        print(f'{loads[i]}) New test accuracy: {round(acc_test * 100, 2)} % - Past test accuracy: {round(previous_acc_test * 100, 2)} %')
 
         av_acc_test = av_acc_test + acc_test
         av_f1_test = av_f1_test + f1
@@ -172,7 +166,7 @@ plt.plot(x_axis, vetPrec, linewidth=3)
 plt.plot(x_axis, vetAverages, linewidth=5)
 plt.xlabel('K bits', fontsize=fontsize)
 plt.ylabel('Metrics [%]', fontsize=fontsize)
-plt.xticks(np.arange(start_k, max_k+1, 1), fontsize=label_size_plot)
+plt.xticks(x_axis, fontsize=label_size_plot)
 plt.yticks(fontsize=label_size_plot)
 plt.legend(['Accuracy', 'Recall', 'F1-score', 'Precision', 'Averages'], fontsize=13)
 plt.grid()

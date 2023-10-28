@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 label_size_plot = 12
 fontsize = 12
-start_k, max_k, step_k = 0, 20, 2
+start_k, max_k, step_k = 0, 20, 1
 
 path_parameters = 'res_hyperopt.pkl'
 df_in = pd.read_pickle('375Hz_2classes.pkl')
@@ -141,7 +141,7 @@ plt.plot(x_axis, vet_undamage, linewidth = 3)
 plt.plot(x_axis, vet_average, linewidth = 3)
 plt.xlabel('Thresholds', fontsize=fontsize)
 plt.ylabel('Correctness [%]', fontsize=fontsize)
-plt.xticks(np.arange(start_k, max_k+1, step_k), fontsize=label_size_plot)
+plt.xticks(x_axis, fontsize=label_size_plot)
 plt.yticks(fontsize=label_size_plot)
 plt.legend(['Damaged', 'Undamaged', 'Average'], fontsize=13)
 plt.grid()
