@@ -48,6 +48,7 @@ def f(params):
     accuracies_test_opt.append(accuracy_test)
 
     acc_returned = (((accuracy_val+accuracy_train)/2) + accuracy_test)/2
+    accuracies_weighted.append(acc_returned)
 
     return {'loss': 1 - round(acc_returned, 3), 'status': STATUS_OK}
 
@@ -127,6 +128,7 @@ for alg in algorithms[:1]:
                 accuracies_val_opt = []
                 accuracies_test_opt = []
                 accuracies_train_opt = []
+                accuracies_weighted = []
 
                 trials = Trials()
                 best = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
@@ -137,9 +139,9 @@ for alg in algorithms[:1]:
                 os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)
                 fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}')
                 interval_size = int(max_evals/5)
-                labels_plot_opt = ['test', 'val', 'train']
-                c = ['blue', 'orange', 'green']
-                series_opt = [accuracies_test_opt, accuracies_val_opt, accuracies_train_opt]
+                labels_plot_opt = ['test', 'val', 'train', 'weighted']
+                c = ['blue', 'orange', 'green', 'red']
+                series_opt = [accuracies_test_opt, accuracies_val_opt, accuracies_train_opt, accuracies_weighted]
                 for serie_opt in series_opt:
                     values_series = []
                     indices_series = []
