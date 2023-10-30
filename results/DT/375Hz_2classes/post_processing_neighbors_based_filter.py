@@ -158,7 +158,7 @@ for k_bits in range(start_k, max_k + 1, step_k):
 
 x_axis = np.arange(start_k, max_k+1, step_k)
 fig = plt.figure(dpi=500)
-fig.suptitle('Neighbors-based filter', fontsize=fontsize+4)
+fig.suptitle('Neighbors-based filter', fontsize=fontsize+5)
 plt.plot(x_axis, vetAcc, linewidth=3)
 plt.plot(x_axis, vetRec, linewidth=3)
 plt.plot(x_axis, vetF1, linewidth=3)

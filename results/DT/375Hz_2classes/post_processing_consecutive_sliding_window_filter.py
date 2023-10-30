@@ -34,16 +34,16 @@ def evaluate_undamaged(predictions, k):
     aux = 0
     count_undamaged = 0
     for i in range(0, len(predictions)-1, 1):
-        if predictions[i] == 0 and predictions[i+1] == 0:
+        if predictions[i] == 1 and predictions[i+1] == 1:
             aux = aux + 1
         elif aux > count_undamaged:
             count_undamaged = aux
             aux = 0
 
     if count_undamaged > k:
-        return 'ok'
-    else:
         return 'no'
+    else:
+        return 'ok'
 
 
 def evaluate_damaged(predictions, k):
@@ -135,7 +135,7 @@ for k_bits in range(start_k, max_k + 1, step_k):
 
 x_axis = np.arange(start_k, max_k+1, step_k)
 fig = plt.figure(dpi=500)
-fig.suptitle('Consecutive sliding window filter', fontsize=fontsize+4)
+fig.suptitle('Consecutive sliding window filter', fontsize=fontsize+5)
 plt.plot(x_axis, vet_damage, linewidth = 3)
 plt.plot(x_axis, vet_undamage, linewidth = 3)
 plt.plot(x_axis, vet_average, linewidth = 3)
@@ -145,5 +145,5 @@ plt.xticks(x_axis, fontsize=label_size_plot)
 plt.yticks(fontsize=label_size_plot)
 plt.legend(['Damaged', 'Undamaged', 'Average'], fontsize=13)
 plt.grid()
-plt.savefig('Consecutive_sliding_window_filter.png')
+plt.savefig('Consecutive_sliding_window_filter2.png')
 plt.show()

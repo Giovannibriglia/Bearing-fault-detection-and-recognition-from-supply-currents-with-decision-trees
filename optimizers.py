@@ -88,9 +88,9 @@ for alg in algorithms[1:]:
             df_in.columns = df_in.columns.str.replace(' ', '')
 
             if alg == 'DT':
-                table_out = pd.DataFrame([['', '', '', '', '']], columns=['name', 'acc_train', 'acc_test', 'hyperparameters', 'features_importance'])
+                table_out = pd.DataFrame([['', '', '', '', '']], columns=['load', 'acc_train', 'acc_test', 'hyperparameters', 'features_importance'])
             else:
-                table_out = pd.DataFrame([['', '', '', '']], columns=['name', 'acc_train', 'acc_test', 'hyperparameters'])
+                table_out = pd.DataFrame([['', '', '', '']], columns=['load', 'acc_train', 'acc_test', 'hyperparameters'])
 
             filename = filename.replace(f'{path_input}\\', '')
             filename = filename.replace('.pkl', '')
