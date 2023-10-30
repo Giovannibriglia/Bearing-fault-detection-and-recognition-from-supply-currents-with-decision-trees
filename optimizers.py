@@ -78,7 +78,7 @@ params_space = [
     }
 ]
 
-for alg in algorithms[:1]:
+for alg in algorithms:
 
     if alg == 'DT':
         max_evals = max_evals_dt
@@ -163,7 +163,7 @@ for alg in algorithms[:1]:
                 plt.xlabel('Hyperopt iterations')
                 plt.ylabel('Accuracy [%]')
                 plt.ylim(0, 1)
-                plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{load}_{filename}.jpg')
+                plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{alg}_{load}_{filename}.jpg')
 
                 print(best)
 
@@ -198,7 +198,7 @@ for alg in algorithms[:1]:
                 plt.xlabel('Predicted Labels')
                 path_alg_singleDf_confMatr = path_alg_singleDf + '\\Confusion Matrices'
                 os.makedirs(path_alg_singleDf_confMatr, exist_ok=True)
-                plt.savefig(f'{path_alg_singleDf_confMatr}\\ConfMat_{load}_{filename}.jpg')
+                plt.savefig(f'{path_alg_singleDf_confMatr}\\ConfMat_{alg}_{load}_{filename}.jpg')
 
                 if alg == 'DT':
                     fig = plt.figure(dpi=500)
@@ -269,7 +269,7 @@ for alg in algorithms[:1]:
                 fig.supylabel('Loss')
                 path_alg_singleDf_Hypers = path_alg_singleDf + '\\Hyper Parameters Tuning'
                 os.makedirs(path_alg_singleDf_Hypers, exist_ok=True)
-                plt.savefig(f'{path_alg_singleDf_Hypers}\\HyperPars_{load}_{filename}.jpg')
+                plt.savefig(f'{path_alg_singleDf_Hypers}\\HyperPars_{alg}_{load}_{filename}.jpg')
 
                 if alg == 'DT':
                     table_out.loc[loads.index(load)] = load, round(acc_train, 2), round(acc_test, 2), best, dict_feat_imp
