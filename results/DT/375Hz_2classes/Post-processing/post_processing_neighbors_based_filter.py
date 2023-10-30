@@ -6,7 +6,7 @@ from sklearn import tree, metrics
 import numpy as np
 import matplotlib.pyplot as plt
 
-label_size_plot = 12
+labelsize = 12
 fontsize = 12
 start_k, max_k, step_k = 0, 20, 1
 
@@ -22,7 +22,7 @@ def get_best_parameters(df_par, par1, par2):
     else:
         load = par1 + '_' + par2
 
-    row_number = df_par.index[df_par['name'] == load]
+    row_number = df_par.index[df_par['load'] == load]
     parameters = df_par.loc[row_number, 'hyperparameters'].to_list()[0]
 
     return parameters
@@ -119,6 +119,9 @@ for k_bits in range(start_k, max_k + 1, step_k):
         p_train = clf.predict(X_train)
         p_test = clf.predict(X_test)
         previous_acc_test = metrics.accuracy_score(y_test, p_test)
+        previous_prec_test = metrics.precision_score(y_test, p_test)
+        previous_rec_test = metrics.recall_score(y_test, p_test)
+        previous_f1_test = metrics.f1_score(y_test, p_test)
 
         new_p_undamaged = neighbors_based_filter(p_test[0:int(len(p_test) / 3)], k_bits)
         new_p_damaged = neighbors_based_filter(p_test[int(len(p_test) / 3):len(p_test)], k_bits)
@@ -132,7 +135,11 @@ for k_bits in range(start_k, max_k + 1, step_k):
         f1 = metrics.f1_score(y_test, p_test_new)
         prec = metrics.precision_score(y_test, p_test_new)
 
-        print(f'{loads[i]}) New test accuracy: {round(acc_test * 100, 2)} % - Past test accuracy: {round(previous_acc_test * 100, 2)} %')
+        print(f'{loads[i]}) New test accuracy: {round(acc_test * 100)} % - Past test accuracy: {round(previous_acc_test * 100)} %')
+        """print(f'{loads[i]}) New test precision: {round(prec * 100)} % - Past test precision: {round(previous_prec_test * 100)} %')
+        print(f'{loads[i]}) New test recall: {round(rec * 100)} % - Past test recall: {round(previous_rec_test * 100)} %')
+        print(f'{loads[i]}) New test f1-score: {round(f1 * 100)} % - Past test f1-score: {round(previous_f1_test * 100)} %')
+        print('\n')"""
 
         av_acc_test = av_acc_test + acc_test
         av_f1_test = av_f1_test + f1
@@ -157,7 +164,7 @@ for k_bits in range(start_k, max_k + 1, step_k):
     print(f'\nAverage averages: {average_averages} % ')
 
 x_axis = np.arange(start_k, max_k+1, step_k)
-fig = plt.figure(dpi=500)
+fig = plt.figure(dpi=600)
 fig.suptitle('Neighbors-based filter', fontsize=fontsize+5)
 plt.plot(x_axis, vetAcc, linewidth=3)
 plt.plot(x_axis, vetRec, linewidth=3)
@@ -166,9 +173,11 @@ plt.plot(x_axis, vetPrec, linewidth=3)
 plt.plot(x_axis, vetAverages, linewidth=5)
 plt.xlabel('K bits', fontsize=fontsize)
 plt.ylabel('Metrics [%]', fontsize=fontsize)
-plt.xticks(x_axis, fontsize=label_size_plot)
-plt.yticks(fontsize=label_size_plot)
+plt.xticks(x_axis, fontsize=labelsize)
+plt.yticks(fontsize=labelsize)
 plt.legend(['Accuracy', 'Recall', 'F1-score', 'Precision', 'Averages'], fontsize=13)
 plt.grid()
-plt.savefig('Neighbors_based_filter.png')
+plt.tick_params(axis='x', labelsize=labelsize)
+plt.tick_params(axis='y', labelsize=labelsize)
+plt.savefig('Neighbors_based_filter.pdf')
 plt.show()

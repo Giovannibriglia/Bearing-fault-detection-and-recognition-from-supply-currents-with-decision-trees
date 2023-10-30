@@ -6,7 +6,7 @@ from sklearn import tree, metrics
 import numpy as np
 import matplotlib.pyplot as plt
 
-label_size_plot = 12
+labelsize = 12
 fontsize = 12
 start_k, max_k, step_k = 0, 20, 1
 
@@ -22,7 +22,7 @@ def get_best_parameters(df_par, par1, par2):
     else:
         load = par1 + '_' + par2
 
-    row_number = df_par.index[df_par['name'] == load]
+    row_number = df_par.index[df_par['load'] == load]
     parameters = df_par.loc[row_number, 'hyperparameters'].to_list()[0]
 
     return parameters
@@ -141,9 +141,11 @@ plt.plot(x_axis, vet_undamage, linewidth = 3)
 plt.plot(x_axis, vet_average, linewidth = 3)
 plt.xlabel('Thresholds', fontsize=fontsize)
 plt.ylabel('Correctness [%]', fontsize=fontsize)
-plt.xticks(x_axis, fontsize=label_size_plot)
-plt.yticks(fontsize=label_size_plot)
+plt.xticks(x_axis, fontsize=labelsize)
+plt.yticks(fontsize=labelsize)
 plt.legend(['Damaged', 'Undamaged', 'Average'], fontsize=13)
 plt.grid()
-plt.savefig('Consecutive_sliding_window_filter2.png')
+plt.tick_params(axis='x', labelsize=labelsize)
+plt.tick_params(axis='y', labelsize=labelsize)
+plt.savefig('Consecutive_sliding_window_filter2.pdf')
 plt.show()

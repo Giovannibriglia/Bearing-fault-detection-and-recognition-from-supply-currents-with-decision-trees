@@ -7,7 +7,7 @@ from sklearn import tree, metrics
 import numpy as np
 import matplotlib.pyplot as plt
 
-label_size_plot = 12
+labelsize = 12
 fontsize = 12
 start_k, max_k, step_k = 0, 20, 1
 
@@ -23,7 +23,7 @@ def get_best_parameters(df_par, par1, par2):
     else:
         load = par1 + '_' + par2
 
-    row_number = df_par.index[df_par['name'] == load]
+    row_number = df_par.index[df_par['load'] == load]
     parameters = df_par.loc[row_number, 'hyperparameters'].to_list()[0]
 
     return parameters
@@ -118,16 +118,18 @@ for k_bits in range(start_k, max_k + 1, step_k):
     vet_average.append(round(total_av * 100, 2))
 
 x_axis = np.arange(start_k, max_k + 1, step_k)
-fig = plt.figure(dpi=500)
+fig = plt.figure(dpi=600)
 fig.suptitle('Sliding window filter', fontsize=fontsize+5)
 plt.plot(x_axis, vet_damage, linewidth=3)
 plt.plot(x_axis, vet_undamage, linewidth=3)
 plt.plot(x_axis, vet_average, linewidth=3)
 plt.xlabel('Thresholds', fontsize=fontsize)
 plt.ylabel('Correctness [%]', fontsize=fontsize)
-plt.xticks(x_axis, fontsize=label_size_plot)
-plt.yticks(fontsize=label_size_plot)
+plt.xticks(x_axis, fontsize=labelsize)
+plt.yticks(fontsize=labelsize)
 plt.legend(['Damaged', 'Undamaged', 'Average'], fontsize=13)
 plt.grid()
-plt.savefig('Sliding_window_filter2.png')
+plt.tick_params(axis='x', labelsize=labelsize)
+plt.tick_params(axis='y', labelsize=labelsize)
+plt.savefig('Sliding_window_filter2.pdf')
 plt.show()
