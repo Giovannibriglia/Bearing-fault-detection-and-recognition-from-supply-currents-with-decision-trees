@@ -119,7 +119,7 @@ for k_bits in range(start_k, max_k + 1, step_k):
 
 x_axis = np.arange(start_k, max_k + 1, step_k)
 fig = plt.figure(dpi=500)
-fig.suptitle('Sliding window filter', fontsize=fontsize+2)
+fig.suptitle('Sliding window filter', fontsize=fontsize+4)
 plt.plot(x_axis, vet_damage, linewidth=3)
 plt.plot(x_axis, vet_undamage, linewidth=3)
 plt.plot(x_axis, vet_average, linewidth=3)

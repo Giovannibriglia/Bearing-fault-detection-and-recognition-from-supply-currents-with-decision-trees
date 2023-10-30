@@ -13,11 +13,12 @@ from sklearn.tree import DecisionTreeClassifier, plot_tree
 import split_TEST
 import split_TRAIN
 import split_VALIDATION
+from scipy.ndimage import gaussian_filter1d
 
 warnings.filterwarnings('ignore')
 
 
-max_evals = 2500
+max_evals = 500
 path_res = 'results'
 path_input = 'dataframes'
 os.makedirs(path_res, exist_ok=True)
@@ -76,7 +77,7 @@ params_space = [
     }
 ]
 
-for alg in algorithms:
+for alg in algorithms[1:]:
     path_alg = path_res + f'\\{alg}'
     os.makedirs(path_alg, exist_ok=True)
 
@@ -134,41 +135,24 @@ for alg in algorithms:
                 best = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
                             trials=trials, loss_threshold=0.01, max_queue_len=int(max_evals/5))
 
-                fig = plt.figure(dpi=500)
                 path_alg_singleDf_OptGraph = path_alg_singleDf + '\\Optimization Graphs'
                 os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)
-                fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}')
-                interval_size = int(max_evals/5)
+
                 labels_plot_opt = ['test', 'val', 'train', 'weighted']
                 c = ['blue', 'orange', 'green', 'red']
                 series_opt = [accuracies_test_opt, accuracies_val_opt, accuracies_train_opt, accuracies_weighted]
+
+                fig = plt.figure(dpi=500)
+                fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}')
+                x_axis = np.arange(0, max_evals, 1)
                 for serie_opt in series_opt:
-                    values_series = []
-                    indices_series = []
-                    for i in range(0, len(accuracies_test_opt), interval_size):
-                        interval = serie_opt[i:i + interval_size]
-                        max_val = max(interval)
-                        min_val = min(interval)
-
-                        max_val_index = i + interval.index(max_val)
-                        min_val_index = i + interval.index(min_val)
-
-                        if max_val_index >= min_val_index:
-                            indices_series.append(min_val_index)
-                            values_series.append(min_val)
-                            indices_series.append(max_val_index)
-                            values_series.append(max_val)
-                        else:
-                            indices_series.append(max_val_index)
-                            values_series.append(max_val)
-                            indices_series.append(min_val_index)
-                            values_series.append(min_val)
-
-                    plt.plot(indices_series, values_series, label= f'{labels_plot_opt[series_opt.index(serie_opt)]}')
-
+                    plt.plot(x_axis, gaussian_filter1d(serie_opt, 4), color=c[series_opt.index(serie_opt)],
+                             label= f'{labels_plot_opt[series_opt.index(serie_opt)]}')
+                    plt.fill_between(x_axis, (serie_opt - np.std(serie_opt)), (serie_opt + np.std(serie_opt)),
+                                     alpha=0.2, color=c[series_opt.index(serie_opt)])
                 plt.legend(loc='best')
                 plt.xlabel('Hyperopt iterations')
-                plt.ylabel('Accuracy')
+                plt.ylabel('Accuracy [%]')
                 plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{load}_{filename}.jpg')
 
                 print(best)
