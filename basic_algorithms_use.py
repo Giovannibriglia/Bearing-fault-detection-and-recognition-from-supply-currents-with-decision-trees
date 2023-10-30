@@ -36,14 +36,18 @@ for alg in algorithms:
             df_in = pd.read_pickle(filename)
             df_in.columns = df_in.columns.str.replace(' ', '')
 
-            table_out = pd.DataFrame([['', '', '', '']], columns=['load', 'acc_train', 'acc_test', 'hyperparameters'])
+            n_classes = len(df_in['D_class'].unique())
+
+            if n_classes >= 3:
+                table_out = pd.DataFrame([['', '', '', '']], columns=['load', 'acc_train', 'acc_test', 'hyperparameters'])
+            else:
+                table_out = pd.DataFrame([['', '', '', '', '', '', '']], columns=['load', 'acc_train', 'acc_test', 'prec_test', 'rec_test', 'f1_test', 'hyperparameters'])
 
             filename = filename.replace(f'{path_input}\\', '')
             filename = filename.replace('.pkl', '')
             path_alg_singleDf = path_alg + '\\' + filename
             os.makedirs(path_alg_singleDf, exist_ok=True)
 
-            n_classes = len(df_in['D_class'].unique())
             if n_classes == 2:
                 class_names = ['healthy', 'damaged']
             elif n_classes == 3:
@@ -96,6 +100,15 @@ for alg in algorithms:
                 print('Train accuracy: ', round(acc_train * 100, 2), ' %')
                 print('Test accuracy: ', round(acc_test * 100, 2), ' %')
 
+                if n_classes >= 3:
+                    table_out.loc[loads.index(load)] = load, round(acc_train, 2), round(acc_test, 2), hyperparameters
+                else:
+                    prec_test = round(metrics.precision_score(y_test, p_test), 2)
+                    rec_test = round(metrics.recall_score(y_test, p_test), 2)
+                    f1_test = round(metrics.f1_score(y_test, p_test), 2)
+
+                    table_out.loc[loads.index(load)] = load, round(acc_train, 2), round(acc_test, 2), prec_test, rec_test, f1_test, hyperparameters
+
                 " **************************************************************************************************** "
                 fig = plt.figure(dpi=500)
                 cm = confusion_matrix(y_test, p_test)
@@ -106,8 +119,6 @@ for alg in algorithms:
                 path_alg_singleDf_confMatr = path_alg_singleDf + '\\Confusion Matrices Basic Use'
                 os.makedirs(path_alg_singleDf_confMatr, exist_ok=True)
                 plt.savefig(f'{path_alg_singleDf_confMatr}\\ConfMat_{load}_{filename}.jpg')
-
-                table_out.loc[loads.index(load)] = load, round(acc_train, 2), round(acc_test, 2), hyperparameters
 
                 # plt.show()
 

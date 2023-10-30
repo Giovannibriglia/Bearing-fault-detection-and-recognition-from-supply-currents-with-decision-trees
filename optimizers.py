@@ -17,8 +17,9 @@ from scipy.ndimage import gaussian_filter1d
 
 warnings.filterwarnings('ignore')
 
-
-max_evals = 500
+max_evals_dt = 2500
+max_evals_knn = 500
+max_evals_lr = 500
 path_res = 'results'
 path_input = 'dataframes'
 os.makedirs(path_res, exist_ok=True)
@@ -77,7 +78,15 @@ params_space = [
     }
 ]
 
-for alg in algorithms[1:]:
+for alg in algorithms[:1]:
+
+    if alg == 'DT':
+        max_evals = max_evals_dt
+    elif alg == 'LR':
+        max_evals = max_evals_lr
+    elif alg == 'KNN':
+        max_evals = max_evals_knn
+
     path_alg = path_res + f'\\{alg}'
     os.makedirs(path_alg, exist_ok=True)
 
@@ -153,6 +162,7 @@ for alg in algorithms[1:]:
                 plt.legend(loc='best')
                 plt.xlabel('Hyperopt iterations')
                 plt.ylabel('Accuracy [%]')
+                plt.ylim(0, 1)
                 plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{load}_{filename}.jpg')
 
                 print(best)
@@ -207,6 +217,7 @@ for alg in algorithms[1:]:
                             vet_names_feat_imp.append(feature_names[feat_num - 1])
 
                     dict_feat_imp = dict(zip(vet_names_feat_imp, vet_val_feat_imp))
+                    dict_feat_imp = dict(sorted(dict_feat_imp.items(), key=lambda x: x[1], reverse=True))
 
                     fig = plt.figure(dpi=500)
                     plt.bar(vet_names_feat_imp, vet_val_feat_imp)

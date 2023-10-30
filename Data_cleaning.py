@@ -15,6 +15,8 @@ sample_rate_cutted = 25000
 seconds_of_acquistion = 10
 path_inputs = 'Curr_SV_NO_offset'
 path_saving = 'dataframes'
+fontsize = 12
+labelsize = 12
 
 def removing_50Hz_reference(data, time_in_sec, if_vis):
     vet = []
@@ -39,10 +41,14 @@ def removing_50Hz_reference(data, time_in_sec, if_vis):
 
     if if_vis:
         fig = plt.figure(dpi=500)
-        fig.suptitle(f'Removing 50Hz reference D{indexD}-R{indexR}-T{indexT}')
+        fig.suptitle(f'Removing 50Hz reference D{indexD}-R{indexR}-T{indexT}', fontsize=fontsize+5)
         plt.plot(vet_unwrapped, label='unwrapped phase', linewidth=3)
         plt.plot(linear_function, label='linear function')
         plt.legend(loc='best')
+        plt.xlabel('Samples', fontsize=fontsize)
+        plt.ylabel('Degrees [°]', fontsize=fontsize)
+        plt.tick_params(axis='x', labelsize=labelsize)
+        plt.tick_params(axis='y', labelsize=labelsize)
         plt.grid()
 
     return vetFin_no_offset
@@ -128,20 +134,28 @@ for max_frequency in [375, 125, 75]:
                         yfl, xfl = FFT(vet=vet_Notch, time_in_sec=1)
 
                         if if_vis:
-                            fig = plt.figure(dpi=500)
-                            fig.suptitle(f'Notch filters D{indexD}-R{indexR}-T{indexT}')
-                            plt.plot(vet_without_50ref[0:2500], label='pre')
-                            plt.plot(vet_Notch[0:2500], label='post')
+                            fig = plt.figure(dpi=600)
+                            fig.suptitle(f'Notch filters on D{indexD}-R{indexR}-T{indexT}', fontsize=fontsize+5)
+                            plt.plot(vet_without_50ref[0:2500], label='before')
+                            plt.plot(vet_Notch[0:2500], label='after')
                             plt.legend(loc='best')
+                            plt.xlabel('Samples', fontsize=fontsize)
+                            plt.ylabel('Degrees [°]', fontsize=fontsize)
+                            plt.tick_params(axis='x', labelsize=labelsize)
+                            plt.tick_params(axis='y', labelsize=labelsize)
                             plt.grid()
 
                             yfl_wrong, xfl_wrong = FFT(vet=vet_without_50ref, time_in_sec=1)
 
                             fig = plt.figure(dpi=500)
-                            fig.suptitle(f'FFT D{indexD}-R{indexR}-T{indexT}')
+                            fig.suptitle(f'FFT D{indexD}-R{indexR}-T{indexT}', fontsize=fontsize+5)
                             plt.plot(xfl[:500], yfl[:500], label='cleaned', linewidth=3)
                             plt.plot(xfl_wrong[:500], yfl_wrong[:500], label='not cleaned')
                             plt.legend(loc='best')
+                            plt.xlabel('Hz', fontsize=fontsize)
+                            plt.ylabel('Amplitude', fontsize=fontsize)
+                            plt.tick_params(axis='x', labelsize=labelsize)
+                            plt.tick_params(axis='y', labelsize=labelsize)
                             plt.grid()
                             plt.show()
 
@@ -203,6 +217,7 @@ for max_frequency in [375, 125, 75]:
 
         df2.to_pickle(f'{path_saving}\\{max_frequency}Hz_{n_classes}classes.pkl')
 
+        """
         print('normalizing...')
         features_to_normalize = df2.columns.to_list()[1:-1]
         if 'D_class' in features_to_normalize:
@@ -212,5 +227,5 @@ for max_frequency in [375, 125, 75]:
         df2[features_to_normalize] = df2[features_to_normalize].apply(normalize_column)
 
         df2.to_pickle(f'{path_saving}\\{max_frequency}Hz_{n_classes}classes_normalized.pkl')
-
+        """
 
