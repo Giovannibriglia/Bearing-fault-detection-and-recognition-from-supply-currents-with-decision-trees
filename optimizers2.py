@@ -3,7 +3,7 @@ import os
 import warnings
 import numpy as np
 import pandas as pd
-from hyperopt import hp, fmin, tpe, Trials, STATUS_OK
+from hyperopt import hp, fmin, atpe, tpe, Trials, STATUS_OK, rand
 from matplotlib import pyplot as plt
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
@@ -15,10 +15,14 @@ import split_TEST
 import split_TRAIN
 import split_VALIDATION2
 from scipy.ndimage import gaussian_filter1d
-
+import random
+from sklearn.preprocessing import LabelEncoder
 warnings.filterwarnings('ignore')
+seed_value = 42
+random.seed(seed_value)
+label_encoder = LabelEncoder()
 
-max_evals_dt = 5000
+max_evals_dt = 20
 max_evals_knn = 500
 max_evals_lr = 500
 path_res = 'results2'
@@ -50,48 +54,78 @@ def f(params):
     accuracy_test = metrics.accuracy_score(y_test, y_pred_test)
     accuracies_test_opt.append(accuracy_test)
 
-    # acc_returned = ((accuracy_val+accuracy_train)/2 + accuracy_test)/2
     acc_returned = accuracy_val
     accuracies_weighted.append(acc_returned)
 
     return {'loss': 1 - round(acc_returned, 3), 'status': STATUS_OK}
 """
 
+def fold_for_f(real_loads, dataTrainVal, features_names):
+
+    groups_indixes = []
+    for real_load in real_loads:
+        indexes = dataTrainVal[dataTrainVal['name_signal'].str.contains(real_load)].index.to_list()
+        for ind in range(len(indexes)):
+            if indexes[ind] > 0:
+                indexes[ind] -=1
+
+        groups_indixes.append(indexes)
+
+    x_opt = pd.DataFrame(columns=features_names)
+    y_opt = []
+    indexes_cols_features = [dataTrainVal.columns.get_loc(column_name) for column_name in features_names]
+
+    for single_group_indixes in groups_indixes:
+        x_values = dataTrainVal.iloc[single_group_indixes, indexes_cols_features]
+        x_opt = pd.concat([x_opt, x_values], ignore_index=True)
+        y_values = dataTrainVal.iloc[single_group_indixes, max(indexes_cols_features)+1]
+        y_opt.extend(y_values)
+
+    y_opt = pd.Series(y_opt)
+
+    return x_opt, y_opt
 
 def f(params):
     if alg == 'DT':
-        model = DecisionTreeClassifier(**params, random_state=0)
+        model = DecisionTreeClassifier(**params)
     elif alg == 'KNN':
         model = KNeighborsClassifier(**params)
     elif alg == 'LR':
         if n_classes > 2:
-            model = LogisticRegression(**params, multi_class='multinomial', random_state=0)
+            model = LogisticRegression(**params, multi_class='multinomial')
         else:
-            model = LogisticRegression(**params, random_state=0)
+            model = LogisticRegression(**params)
 
-    kf = model_selection.StratifiedKFold(n_splits=5)
+    n_groups = len(x_opt)
+    kf = model_selection.GroupKFold(n_splits=n_groups)
+
+    groups = []
+    for group_number in range(n_groups):
+        groups.extend([group_number])
+
     accuracy_val = 0
-    x = X_val
-    y = y_val
-    for idx in kf.split(X=x, y=y):
+    for idx in kf.split(X=x_opt, y=y_opt, groups=groups):
         train_idx, test_idx = idx[0], idx[1]
-        x_train_split = x.iloc[train_idx]
-        y_train_split = y.iloc[train_idx]
+        x_train_split = x_opt.iloc[train_idx]
+        y_train_split = y_opt.iloc[train_idx]
 
-        x_test_split = x.iloc[test_idx]
-        y_test_split = y.iloc[test_idx]
+        x_test_split = x_opt.iloc[test_idx]
+        y_test_split = y_opt.iloc[test_idx]
+
         model.fit(x_train_split, y_train_split)
         preds_split = model.predict(x_test_split)
         accuracy_val += metrics.accuracy_score(y_test_split, preds_split)
-
+    
     accuracy_val = accuracy_val / kf.n_splits
     accuracies_val_opt.append(accuracy_val)
 
     preds_train_hyper = model.predict(X_train)
-    accuracies_train_opt.append(metrics.accuracy_score(y_train, preds_train_hyper))
+    accuracy_train_hyper = metrics.accuracy_score(y_train, preds_train_hyper)
+    accuracies_train_opt.append(accuracy_train_hyper)
 
     preds_test_hyper = model.predict(X_test)
-    accuracies_test_opt.append(metrics.accuracy_score(y_test, preds_test_hyper))
+    accuracy_test_hyper = metrics.accuracy_score(y_test, preds_test_hyper)
+    accuracies_test_opt.append(accuracy_test_hyper)
 
     acc_returned = accuracy_val
     accuracies_weighted.append(acc_returned)
@@ -109,10 +143,11 @@ loads = ['R1', 'R2', 'R3',
 
 params_space = [
     {
-        'max_depth': hp.randint('max_depth', 1, 100),
-        'max_features': hp.uniform('max_features', 0.01, 1),
-        'min_samples_split': hp.uniform('min_samples_split', 0.001, 0.5),
-        'min_samples_leaf': hp.uniform('min_samples_leaf', 0.001, 0.5)
+        'max_depth': hp.randint('max_depth', 1, 101),
+        'max_features': hp.uniform('max_features', 0.001, 1)
+        #'min_samples_split': hp.uniform('min_samples_split', 0.0, 0.5),
+        #'min_weight_fraction_leaf': hp.uniform('min_weight_fraction_leaf', 0.0, 0.5),
+        #'min_samples_leaf': hp.uniform('min_samples_leaf', 0.0, 0.5)
     }, {
         'n_neighbors': hp.randint('n_neighbors', 1, 100),
         'leaf_size': hp.randint('leaf_size', 3, 100),
@@ -166,6 +201,12 @@ for alg in algorithms:
             mean_test_accuracy = 0
 
             for load in loads:
+                real_loads = ['R1_T1', 'R1_T2', 'R1_T3',
+                              'R2_T1', 'R2_T2', 'R2_T3',
+                              'R3_T1', 'R3_T2', 'R3_T3']
+
+                real_loads = [s for s in real_loads if load not in s]
+
                 print(f'\n *** {alg} - {filename} - {load} ***')
                 par1_test = load
                 par2_test = load
@@ -173,15 +214,15 @@ for alg in algorithms:
                 dataset_validation, dataset_train = split_VALIDATION2.setVal(dataTrainVal, all_loads=loads, load_tested=par1_test, val_size=0.2)
                 dataset_test = split_TEST.TEST(df_in, par1_test, par2_test)
 
-                feature_names = df_in.columns.to_list()[1:len(df_in.columns) - 1]  # first element is the name, the last is 'D'
+                features_names = df_in.columns.to_list()[1:len(df_in.columns) - 1]  # first element is the name, the last is 'D'
 
-                X_val = dataset_validation[feature_names]
+                X_val = dataset_validation[features_names]
                 y_val = dataset_validation['D_class']
 
-                X_train = dataset_train[feature_names]
+                X_train = dataset_train[features_names]
                 y_train = dataset_train['D_class']
 
-                X_test = dataset_test[feature_names]
+                X_test = dataset_test[features_names]
                 y_test = dataset_test['D_class']
 
                 accuracies_val_opt = []
@@ -189,9 +230,12 @@ for alg in algorithms:
                 accuracies_train_opt = []
                 accuracies_weighted = []
 
+                x_opt, y_opt = fold_for_f(real_loads, dataTrainVal, features_names)
+
                 trials = Trials()
-                best = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
-                            trials=trials, max_queue_len=int(max_evals / 5)) #, loss_threshold=0.01
+                best = fmin(f, params_space[algorithms.index(alg)], algo=atpe.suggest, max_evals=max_evals, rstate=np.random.default_rng(0),
+                            trials=trials, max_queue_len=int(max_evals / 5), loss_threshold=0.01)
+                print(best)
 
                 path_alg_singleDf_OptGraph = path_alg_singleDf + '\\Optimization Graphs'
                 os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)
@@ -202,7 +246,7 @@ for alg in algorithms:
 
                 fig = plt.figure(dpi=500)
                 fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}')
-                x_axis = np.arange(0, max_evals, 1)
+                x_axis = np.arange(0, len(trials), 1)
                 for serie_opt in series_opt:
                     serie_for_plot = gaussian_filter1d(serie_opt, 4)
                     #plt.plot(x_axis, serie_opt, color=c[series_opt.index(serie_opt)],label=f'{labels_plot_opt[series_opt.index(serie_opt)]}')
@@ -214,7 +258,6 @@ for alg in algorithms:
                 plt.ylim(0, 1)
                 plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{alg}_{load}_{filename}.jpg')
                 plt.show()
-                print(best)
 
                 if alg == 'DT':
                     clf = DecisionTreeClassifier(**best, random_state=0)
@@ -228,18 +271,21 @@ for alg in algorithms:
 
                 clf.fit(X_train, y_train)
                 p_train = clf.predict(X_train)
+                p_val = clf.predict(X_val)
                 p_test = clf.predict(X_test)
 
                 acc_train = metrics.accuracy_score(y_train, p_train)
                 mean_train_accuracy += acc_train
+                acc_val = metrics.accuracy_score(y_val, p_val)
                 acc_test = metrics.accuracy_score(y_test, p_test)
                 mean_test_accuracy += acc_test
 
                 print('Train accuracy: ', round(acc_train * 100, 2), ' %')
+                print('Val accuracy: ', round(acc_val * 100, 2), ' %')
                 print('Test accuracy: ', round(acc_test * 100, 2), ' %')
 
                 " **************************************************************************************************** "
-                fig = plt.figure(dpi=500)
+                """fig = plt.figure(dpi=500)
                 cm = confusion_matrix(y_test, p_test)
                 cm_display = ConfusionMatrixDisplay(cm).plot()
                 plt.title(f'{alg} - Confusion Matrix - Load {load} - {filename}')
@@ -331,4 +377,4 @@ for alg in algorithms:
             print('\nMean train accuracy: ', round(mean_train_accuracy * 100 / len(loads), 2), ' %')
             print('\nMean test accuracy: ', round(mean_test_accuracy * 100 / len(loads), 2), ' %')
             table_out.to_excel(f'{path_alg_singleDf}\\res_hyperopt.xlsx')
-            table_out.to_pickle(f'{path_alg_singleDf}\\res_hyperopt.pkl')
+            table_out.to_pickle(f'{path_alg_singleDf}\\res_hyperopt.pkl')"""
