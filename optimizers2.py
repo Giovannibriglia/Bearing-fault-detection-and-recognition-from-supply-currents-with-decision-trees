@@ -22,7 +22,7 @@ seed_value = 42
 random.seed(seed_value)
 label_encoder = LabelEncoder()
 
-max_evals_dt = 20
+max_evals_dt = 1000
 max_evals_knn = 500
 max_evals_lr = 500
 path_res = 'results2'
@@ -59,7 +59,7 @@ def f(params):
 
     return {'loss': 1 - round(acc_returned, 3), 'status': STATUS_OK}
 """
-
+"""
 def fold_for_f(real_loads, dataTrainVal, features_names):
 
     groups_indixes = []
@@ -72,18 +72,60 @@ def fold_for_f(real_loads, dataTrainVal, features_names):
         groups_indixes.append(indexes)
 
     x_opt = pd.DataFrame(columns=features_names)
+    #x_opt = np.empty(len(groups_indixes), dtype=object)
+    #x_opt = []
     y_opt = []
     indexes_cols_features = [dataTrainVal.columns.get_loc(column_name) for column_name in features_names]
 
     for single_group_indixes in groups_indixes:
         x_values = dataTrainVal.iloc[single_group_indixes, indexes_cols_features]
         x_opt = pd.concat([x_opt, x_values], ignore_index=True)
+        #x_opt.append(np.array(x_values))
+        #x_opt[groups_indixes.index(single_group_indixes)] = np.array(x_values)
         y_values = dataTrainVal.iloc[single_group_indixes, max(indexes_cols_features)+1]
+        y_opt.extend(y_values)
+
+    #x_opt = pd.Series(x_opt)
+    y_opt = pd.Series(y_opt)
+
+    print(f'Len X (= n_groups): {len(x_opt)} - Len Y: {len(y_opt)}')
+
+    return x_opt, y_opt
+"""
+def fold_for_f(real_loads, dataTrainVal, features_names, n_loads_to_use=2, n_examples_for_load=20):
+    groups_indices = []
+
+    random.shuffle(real_loads)
+    selected_real_loads = real_loads[:n_loads_to_use]
+    print('Loads for GroupKFold: ', selected_real_loads)
+
+    for real_load in selected_real_loads:
+        indexes = dataTrainVal[dataTrainVal['name_signal'].str.contains(real_load)].index.to_list()
+        for ind in range(len(indexes)):
+            if indexes[ind] > 0:
+                indexes[ind] -= 1
+        if n_examples_for_load <= len(indexes):
+            indexes = random.sample(indexes, n_examples_for_load)
+        groups_indices.append(indexes)
+
+    x_opt = pd.DataFrame(columns=features_names)
+    y_opt = []
+
+    indexes_cols_features = [dataTrainVal.columns.get_loc(column_name) for column_name in features_names]
+
+    for single_group_indices in groups_indices:
+        x_values = dataTrainVal.iloc[single_group_indices, indexes_cols_features]
+        x_opt = pd.concat([x_opt, x_values], ignore_index=True)
+        y_values = dataTrainVal.iloc[single_group_indices, max(indexes_cols_features) + 1]
         y_opt.extend(y_values)
 
     y_opt = pd.Series(y_opt)
 
-    return x_opt, y_opt
+    n_groups = n_loads_to_use
+    print(f'Len X: {len(x_opt)} - Len Y: {len(y_opt)} - n_groups: {n_groups}')
+
+    return x_opt, y_opt, n_groups
+
 
 def f(params):
     if alg == 'DT':
@@ -96,17 +138,20 @@ def f(params):
         else:
             model = LogisticRegression(**params)
 
-    n_groups = len(x_opt)
     kf = model_selection.GroupKFold(n_splits=n_groups)
 
     groups = []
-    for group_number in range(n_groups):
-        groups.extend([group_number])
+    count = 0
+    for group_number in range(len(x_opt)):
+        groups.extend([count])
+        if group_number % n_groups ==0:
+            count +=1
 
     accuracy_val = 0
     for idx in kf.split(X=x_opt, y=y_opt, groups=groups):
         train_idx, test_idx = idx[0], idx[1]
         x_train_split = x_opt.iloc[train_idx]
+
         y_train_split = y_opt.iloc[train_idx]
 
         x_test_split = x_opt.iloc[test_idx]
@@ -114,7 +159,8 @@ def f(params):
 
         model.fit(x_train_split, y_train_split)
         preds_split = model.predict(x_test_split)
-        accuracy_val += metrics.accuracy_score(y_test_split, preds_split)
+        # accuracy_val += metrics.accuracy_score(y_test_split, preds_split)
+        accuracy_val += np.mean(model_selection.cross_val_score(model, x_opt, y_opt, cv=n_groups))
     
     accuracy_val = accuracy_val / kf.n_splits
     accuracies_val_opt.append(accuracy_val)
@@ -144,9 +190,9 @@ loads = ['R1', 'R2', 'R3',
 params_space = [
     {
         'max_depth': hp.randint('max_depth', 1, 101),
-        'max_features': hp.uniform('max_features', 0.001, 1)
-        #'min_samples_split': hp.uniform('min_samples_split', 0.0, 0.5),
-        #'min_weight_fraction_leaf': hp.uniform('min_weight_fraction_leaf', 0.0, 0.5),
+        'max_features': hp.uniform('max_features', 0.001, 1),
+        'min_samples_split': hp.uniform('min_samples_split', 0.0, 0.5),
+        'min_weight_fraction_leaf': hp.uniform('min_weight_fraction_leaf', 0.0, 0.5)
         #'min_samples_leaf': hp.uniform('min_samples_leaf', 0.0, 0.5)
     }, {
         'n_neighbors': hp.randint('n_neighbors', 1, 100),
@@ -230,7 +276,7 @@ for alg in algorithms:
                 accuracies_train_opt = []
                 accuracies_weighted = []
 
-                x_opt, y_opt = fold_for_f(real_loads, dataTrainVal, features_names)
+                x_opt, y_opt, n_groups = fold_for_f(real_loads, dataTrainVal, features_names)
 
                 trials = Trials()
                 best = fmin(f, params_space[algorithms.index(alg)], algo=atpe.suggest, max_evals=max_evals, rstate=np.random.default_rng(0),
