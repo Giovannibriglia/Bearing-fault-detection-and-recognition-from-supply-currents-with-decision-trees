@@ -13,21 +13,25 @@ from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn import model_selection
 import split_TEST
 import split_TRAIN
-import split_VALIDATION2
+import split_VALIDATION
 from scipy.ndimage import gaussian_filter1d
 import random
 from sklearn.preprocessing import LabelEncoder
+from hyperopt.early_stop import no_progress_loss
 warnings.filterwarnings('ignore')
 seed_value = 42
 random.seed(seed_value)
 label_encoder = LabelEncoder()
+fontsize = 12
 
-max_evals_dt = 1000
+max_evals_dt = 100
 max_evals_knn = 500
 max_evals_lr = 500
 path_res = 'results2'
 path_input = 'dataframes'
 os.makedirs(path_res, exist_ok=True)
+n_loads_to_use = 2
+n_examples_for_load = 30
 
 """
 def f(params):
@@ -59,39 +63,7 @@ def f(params):
 
     return {'loss': 1 - round(acc_returned, 3), 'status': STATUS_OK}
 """
-"""
-def fold_for_f(real_loads, dataTrainVal, features_names):
 
-    groups_indixes = []
-    for real_load in real_loads:
-        indexes = dataTrainVal[dataTrainVal['name_signal'].str.contains(real_load)].index.to_list()
-        for ind in range(len(indexes)):
-            if indexes[ind] > 0:
-                indexes[ind] -=1
-
-        groups_indixes.append(indexes)
-
-    x_opt = pd.DataFrame(columns=features_names)
-    #x_opt = np.empty(len(groups_indixes), dtype=object)
-    #x_opt = []
-    y_opt = []
-    indexes_cols_features = [dataTrainVal.columns.get_loc(column_name) for column_name in features_names]
-
-    for single_group_indixes in groups_indixes:
-        x_values = dataTrainVal.iloc[single_group_indixes, indexes_cols_features]
-        x_opt = pd.concat([x_opt, x_values], ignore_index=True)
-        #x_opt.append(np.array(x_values))
-        #x_opt[groups_indixes.index(single_group_indixes)] = np.array(x_values)
-        y_values = dataTrainVal.iloc[single_group_indixes, max(indexes_cols_features)+1]
-        y_opt.extend(y_values)
-
-    #x_opt = pd.Series(x_opt)
-    y_opt = pd.Series(y_opt)
-
-    print(f'Len X (= n_groups): {len(x_opt)} - Len Y: {len(y_opt)}')
-
-    return x_opt, y_opt
-"""
 def fold_for_f(real_loads, dataTrainVal, features_names, n_loads_to_use=2, n_examples_for_load=20):
     groups_indices = []
 
@@ -142,12 +114,12 @@ def f(params):
 
     groups = []
     count = 0
-    for group_number in range(len(x_opt)):
-        groups.extend([count])
-        if group_number % n_groups ==0:
-            count +=1
+    for group_number in range(n_groups):
+        count += 1
+        for count in [count]*int(len(x_opt)/n_groups):
+            groups.extend([count])
 
-    accuracy_val = 0
+    val_score_fold = 0
     for idx in kf.split(X=x_opt, y=y_opt, groups=groups):
         train_idx, test_idx = idx[0], idx[1]
         x_train_split = x_opt.iloc[train_idx]
@@ -159,27 +131,35 @@ def f(params):
 
         model.fit(x_train_split, y_train_split)
         preds_split = model.predict(x_test_split)
-        # accuracy_val += metrics.accuracy_score(y_test_split, preds_split)
-        accuracy_val += np.mean(model_selection.cross_val_score(model, x_opt, y_opt, cv=n_groups))
-    
-    accuracy_val = accuracy_val / kf.n_splits
-    accuracies_val_opt.append(accuracy_val)
+        val_score_fold += np.mean(model_selection.cross_val_score(model, x_opt, y_opt, cv=n_groups))
+
+    val_score_fold = val_score_fold / kf.n_splits
+
+    preds_val_hyper = model.predict(X_val)
+    accuracy_val_hyper = metrics.accuracy_score(y_val, preds_val_hyper)
+    accuracies_val_hyper.append(accuracy_val_hyper)
 
     preds_train_hyper = model.predict(X_train)
     accuracy_train_hyper = metrics.accuracy_score(y_train, preds_train_hyper)
-    accuracies_train_opt.append(accuracy_train_hyper)
+    accuracies_train_hyper.append(accuracy_train_hyper)
 
     preds_test_hyper = model.predict(X_test)
     accuracy_test_hyper = metrics.accuracy_score(y_test, preds_test_hyper)
-    accuracies_test_opt.append(accuracy_test_hyper)
+    accuracies_test_hyper.append(accuracy_test_hyper)
 
-    acc_returned = accuracy_val
-    accuracies_weighted.append(acc_returned)
+    if accuracy_test_hyper > 0.8:
+        print(f'Train: {round(accuracy_train_hyper*100, 2)} %')
+        print(f'Val: {round(accuracy_val_hyper*100, 2)} %')
+        print(f'Test: {round(accuracy_test_hyper*100, 2)} %')
+
+
+    acc_returned = (accuracy_val_hyper + val_score_fold)/2
+    accuracies_weighted_hyper.append(acc_returned)
 
     return {'loss': 1 - round(acc_returned, 3), 'status': STATUS_OK}
 
 
-algorithms = ['DT', 'KNN', 'LR']
+algorithms = ['DT'] #, 'KNN', 'LR']
 
 loads = ['R1', 'R2', 'R3',
          'T1', 'T2', 'T3',
@@ -187,9 +167,10 @@ loads = ['R1', 'R2', 'R3',
          'R2_T1', 'R2_T2', 'R2_T3',
          'R3_T1', 'R3_T2', 'R3_T3']
 
+
 params_space = [
     {
-        'max_depth': hp.randint('max_depth', 1, 101),
+        'max_depth': hp.randint('max_depth', 1, 99),
         'max_features': hp.uniform('max_features', 0.001, 1),
         'min_samples_split': hp.uniform('min_samples_split', 0.0, 0.5),
         'min_weight_fraction_leaf': hp.uniform('min_weight_fraction_leaf', 0.0, 0.5)
@@ -246,7 +227,7 @@ for alg in algorithms:
             mean_train_accuracy = 0
             mean_test_accuracy = 0
 
-            for load in loads:
+            for load in loads[:1]:
                 real_loads = ['R1_T1', 'R1_T2', 'R1_T3',
                               'R2_T1', 'R2_T2', 'R2_T3',
                               'R3_T1', 'R3_T2', 'R3_T3']
@@ -257,10 +238,13 @@ for alg in algorithms:
                 par1_test = load
                 par2_test = load
                 dataTrainVal = split_TRAIN.TRAIN(df_in, par1_test, par2_test)
-                dataset_validation, dataset_train = split_VALIDATION2.setVal(dataTrainVal, all_loads=loads, load_tested=par1_test, val_size=0.2)
+                dataset_validation, dataset_train = split_VALIDATION.setVal(dataTrainVal, all_loads=loads,
+                                                                             load_tested=par1_test,
+                                                                             val_size=0.2)
                 dataset_test = split_TEST.TEST(df_in, par1_test, par2_test)
 
-                features_names = df_in.columns.to_list()[1:len(df_in.columns) - 1]  # first element is the name, the last is 'D'
+                features_names = df_in.columns.to_list()[
+                                 1:len(df_in.columns) - 1]  # first element is the name, the last is 'D'
 
                 X_val = dataset_validation[features_names]
                 y_val = dataset_validation['D_class']
@@ -271,39 +255,18 @@ for alg in algorithms:
                 X_test = dataset_test[features_names]
                 y_test = dataset_test['D_class']
 
-                accuracies_val_opt = []
-                accuracies_test_opt = []
-                accuracies_train_opt = []
-                accuracies_weighted = []
+                accuracies_val_hyper = []
+                accuracies_test_hyper = []
+                accuracies_train_hyper = []
+                accuracies_weighted_hyper = []
 
-                x_opt, y_opt, n_groups = fold_for_f(real_loads, dataTrainVal, features_names)
+                x_opt, y_opt, n_groups = fold_for_f(real_loads, dataTrainVal, features_names,
+                                                    n_loads_to_use=n_loads_to_use, n_examples_for_load=n_examples_for_load)
 
                 trials = Trials()
-                best = fmin(f, params_space[algorithms.index(alg)], algo=atpe.suggest, max_evals=max_evals, rstate=np.random.default_rng(0),
-                            trials=trials, max_queue_len=int(max_evals / 5), loss_threshold=0.01)
-                print(best)
-
-                path_alg_singleDf_OptGraph = path_alg_singleDf + '\\Optimization Graphs'
-                os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)
-
-                labels_plot_opt = ['test', 'val', 'train', 'weighted']
-                c = ['blue', 'orange', 'green', 'red']
-                series_opt = [accuracies_test_opt, accuracies_val_opt, accuracies_train_opt] #, accuracies_weighted]
-
-                fig = plt.figure(dpi=500)
-                fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}')
-                x_axis = np.arange(0, len(trials), 1)
-                for serie_opt in series_opt:
-                    serie_for_plot = gaussian_filter1d(serie_opt, 4)
-                    #plt.plot(x_axis, serie_opt, color=c[series_opt.index(serie_opt)],label=f'{labels_plot_opt[series_opt.index(serie_opt)]}')
-                    plt.plot(x_axis, serie_for_plot, color=c[series_opt.index(serie_opt)],label=f'{labels_plot_opt[series_opt.index(serie_opt)]}')
-                    plt.fill_between(x_axis, serie_opt - np.std(serie_opt)/2, serie_opt + np.std(serie_opt)/2, alpha=0.2, color=c[series_opt.index(serie_opt)])
-                plt.legend(loc='best')
-                plt.xlabel('Hyperopt iterations')
-                plt.ylabel('Accuracy [%]')
-                plt.ylim(0, 1)
-                plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{alg}_{load}_{filename}.jpg')
-                plt.show()
+                best = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals, rstate=np.random.default_rng(0),
+                            trials=trials, max_queue_len=int(max_evals/5), early_stop_fn=no_progress_loss(iteration_stop_count=100, percent_increase=0.1)) #, loss_threshold=0.0)
+                # print(best)
 
                 if alg == 'DT':
                     clf = DecisionTreeClassifier(**best, random_state=0)
@@ -330,7 +293,28 @@ for alg in algorithms:
                 print('Val accuracy: ', round(acc_val * 100, 2), ' %')
                 print('Test accuracy: ', round(acc_test * 100, 2), ' %')
 
-                " **************************************************************************************************** "
+                path_alg_singleDf_OptGraph = path_alg_singleDf + '\\Optimization Graphs'
+                os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)
+
+                labels_plot_opt = ['test', 'val', 'train', 'weighted']
+                c = ['blue', 'orange', 'green', 'red']
+                series_opt = [accuracies_test_hyper, accuracies_val_hyper, accuracies_train_hyper] #, accuracies_weighted]
+
+                fig = plt.figure(dpi=500)
+                fig.suptitle(f'{alg} - Optimization - Load {load} - {filename}', fontsize=fontsize+3)
+                x_axis = np.arange(0, len(trials), 1)
+                for serie_opt in series_opt:
+                    serie_for_plot = gaussian_filter1d(serie_opt, 4)
+                    #plt.plot(x_axis, serie_opt, color=c[series_opt.index(serie_opt)],label=f'{labels_plot_opt[series_opt.index(serie_opt)]}')
+                    plt.plot(x_axis, serie_for_plot, color=c[series_opt.index(serie_opt)],label=f'{labels_plot_opt[series_opt.index(serie_opt)]}')
+                    plt.fill_between(x_axis, serie_opt - np.std(serie_opt)/2, serie_opt + np.std(serie_opt)/2, alpha=0.2, color=c[series_opt.index(serie_opt)])
+                plt.legend(loc='best')
+                plt.xlabel('Hyperopt iterations', fontsize=fontsize)
+                plt.ylabel('Accuracy [%]', fontsize=fontsize)
+                plt.ylim(0, 1)
+                plt.savefig(f'{path_alg_singleDf_OptGraph}\\OptGraph_{alg}_{load}_{filename}.jpg')
+                plt.show()
+            
                 """fig = plt.figure(dpi=500)
                 cm = confusion_matrix(y_test, p_test)
                 cm_display = ConfusionMatrixDisplay(cm).plot()
