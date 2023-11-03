@@ -14,8 +14,8 @@ import split_VALIDATION
 
 warnings.filterwarnings('ignore')
 
-path_res = 'results'
-path_input = 'dataframes'
+path_res = 'results_module'
+path_input = 'dataframes_module'
 os.makedirs(path_res, exist_ok=True)
 
 algorithms = ['DT', 'KNN', 'LR']
@@ -62,7 +62,7 @@ for alg in algorithms:
                 par2_test = load
 
                 dataTrainVal = split_TRAIN.TRAIN(df_in, par1_test, par2_test)
-                dataset_validation, dataset_train = split_VALIDATION.setVal(dataTrainVal, val_size=0.01)
+                dataset_validation, dataset_train = split_VALIDATION.setVal(dataTrainVal, val_size=0.2, all_loads=loads, load_tested=par1_test)
                 dataset_test = split_TEST.TEST(df_in, par1_test, par2_test)
 
                 feature_names = df_in.columns.to_list()[1:len(df_in.columns)-1] # first element is the name, the last is 'D'
