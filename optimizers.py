@@ -19,6 +19,7 @@ from scipy.ndimage import gaussian_filter1d
 import random
 from sklearn.preprocessing import LabelEncoder
 from functools import partial
+from tqdm import tqdm
 
 warnings.filterwarnings('ignore')
 seed_value = 42
@@ -28,7 +29,7 @@ fontsize = 12
 
 max_evals = 10
 n_optimization = 5000
-path_res = 'results'
+path_res = 'results_curr'
 path_input = 'dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
 
@@ -150,11 +151,14 @@ for alg in algorithms:
                 acc_train_on_max_test = 0
                 acc_val_on_max_test = 0
                 best_params = {}
-                for _ in range(n_optimization):
+
+                loop_opt = tqdm(np.arange(n_optimization))
+                for _ in loop_opt:
                     trials = Trials()
                     f = partial(objective, x_opt=X_val, y_opt=y_val, alg=alg, n_classes=n_classes)
                     params = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
                                   # rstate=np.random.RandomState(seed_value),
+                                  show_progressbar=False,
                                   trials=trials,
                                   max_queue_len=int(max_evals / 5))
 
@@ -181,6 +185,7 @@ for alg in algorithms:
 
                     if acc_test > max_acc_test:
                         max_acc_test = acc_test
+                        loop_opt.set_postfix_str(f"Best test accuracy: {max_acc_test}")
                         best_params = params
                         acc_train_on_max_test = acc_train
                         acc_val_on_max_test = acc_val
