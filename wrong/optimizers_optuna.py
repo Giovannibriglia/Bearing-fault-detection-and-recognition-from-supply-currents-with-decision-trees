@@ -28,8 +28,8 @@ sampler = TPESampler(seed=seed_value)
 label_encoder = LabelEncoder()
 fontsize = 12
 
-n_trials = 1000
-path_res = 'results_curr'
+n_trials = 100
+path_res = 'results_curr2'
 path_input = '../dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
 
@@ -207,7 +207,7 @@ for alg in algorithms:
                 par1_test = load
                 par2_test = load
                 dataTrainVal = split_TRAIN.TRAIN(df_in, par1_test, par2_test)
-                dataset_validation, dataset_train = split_VALIDATION.setVal(dataTrainVal, all_loads=loads,
+                dataset_validation, dataset_train = split_VALIDATION2.setVal(dataTrainVal, all_loads=loads,
                                                                             load_tested=par1_test,
                                                                             val_size=0.2)
                 dataset_test = split_TEST.TEST(df_in, par1_test, par2_test)
@@ -261,13 +261,13 @@ for alg in algorithms:
                 plt.show()
 
 
-                """fig = plt.figure(dpi=500)
+                fig = plt.figure(dpi=500)
                 plot_slice(dtree_study)
                 plt.show()
 
                 fig = plt.figure(dpi=500)
                 plot_param_importances(dtree_study)
-                plt.show()"""
+                plt.show()
 
                 """path_alg_singleDf_OptGraph = path_alg_singleDf + '\\Optimization Graphs'
                 os.makedirs(path_alg_singleDf_OptGraph, exist_ok=True)"""
