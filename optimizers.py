@@ -28,15 +28,15 @@ label_encoder = LabelEncoder()
 fontsize = 12
 
 max_evals = 10
-n_optimization = 5000
+n_optimizations = 500
 path_res = 'results_curr'
 path_input = 'dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
 
 
-def objective(params, x_opt, y_opt, alg, n_classes):
+def select_clf(alg, params, n_classes):
     if alg == 'DT':
-        params['max_depth'] = int(params['max_depth'])
+        # params['max_depth'] = int(params['max_depth'])
         clf = DecisionTreeClassifier(**params, random_state=0)
     elif alg == 'KNN':
         clf = KNeighborsClassifier(**params)
@@ -45,6 +45,12 @@ def objective(params, x_opt, y_opt, alg, n_classes):
             clf = LogisticRegression(**params, multi_class='multinomial', random_state=0)
         else:
             clf = LogisticRegression(**params, random_state=0)
+
+    return clf
+
+
+def objective(params, x_opt, y_opt, alg, n_classes):
+    clf = select_clf(alg, params, n_classes)
 
     kf = model_selection.StratifiedKFold(n_splits=10)
 
@@ -72,15 +78,16 @@ loads = ['R1', 'R2', 'R3',
          'R2_T1', 'R2_T2', 'R2_T3',
          'R3_T1', 'R3_T2', 'R3_T3']
 
-params_space = [
+params_spaces = [
     {
-        'max_depth': hp.quniform('max_depth', 1, 100, 1),
-        'max_features': hp.uniform('max_features', 0.01, 1),
-        'min_samples_split': hp.uniform('min_samples_split', 0.0, 1),
+        'max_depth': hp.randint('max_depth', 3, 100),
+        'max_features': hp.uniform('max_features', 0.001, 1),
+        'min_samples_split': hp.uniform('min_samples_split', 0.0001, 1),
         'min_weight_fraction_leaf': hp.uniform('min_weight_fraction_leaf', 0.0, 0.5),
-        'min_samples_leaf': hp.uniform('min_samples_leaf', 0.0, 1)
+        # 'min_samples_leaf': hp.uniform('min_samples_leaf', 0.0, 0.5),
+        # 'max_leaf_nodes': hp.randint('max_leaf_nodes', 20, 120)
     }, {
-        'n_neighbors': hp.randint('n_neighbors', 1, 100),
+        'n_neighbors': hp.randint('n_neighbors', 1, 60),
         'leaf_size': hp.randint('leaf_size', 3, 100),
         'p': hp.randint('p', 1, 5)
     }, {
@@ -152,26 +159,17 @@ for alg in algorithms:
                 acc_val_on_max_test = 0
                 best_params = {}
 
-                loop_opt = tqdm(np.arange(n_optimization))
-                for _ in loop_opt:
+                loop_opt = tqdm(np.arange(n_optimizations))
+                for iteration in loop_opt:
                     trials = Trials()
                     f = partial(objective, x_opt=X_val, y_opt=y_val, alg=alg, n_classes=n_classes)
-                    params = fmin(f, params_space[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
+                    params = fmin(f, params_spaces[algorithms.index(alg)], algo=tpe.suggest, max_evals=max_evals,
                                   # rstate=np.random.RandomState(seed_value),
                                   show_progressbar=False,
                                   trials=trials,
                                   max_queue_len=int(max_evals / 5))
 
-                    if alg == 'DT':
-                        params['max_depth'] = int(params['max_depth'])
-                        clf = DecisionTreeClassifier(**params, random_state=0)
-                    elif alg == 'KNN':
-                        clf = KNeighborsClassifier(**params)
-                    if alg == 'LR':
-                        if n_classes > 2:
-                            clf = LogisticRegression(**params, multi_class='multinomial', random_state=0)
-                        else:
-                            clf = LogisticRegression(**params, random_state=0)
+                    clf = select_clf(alg, params, n_classes)
 
                     clf.fit(X_train, y_train)
                     p_train = clf.predict(X_train)
@@ -185,22 +183,35 @@ for alg in algorithms:
 
                     if acc_test > max_acc_test:
                         max_acc_test = acc_test
-                        loop_opt.set_postfix_str(f"Best test accuracy: {max_acc_test}")
+                        loop_opt.set_postfix_str(f"Best test accuracy: {max_acc_test} at iteration {iteration}")
                         best_params = params
                         acc_train_on_max_test = acc_train
                         acc_val_on_max_test = acc_val
+                        best_clf = clf
                     if acc_test > 0.99:
                         break
 
-                mean_train_accuracy += acc_train
-                mean_test_accuracy += acc_test
+                clf_final = select_clf(alg, best_params, n_classes)
 
-                print(f'Train accuracy: {round(acc_train_on_max_test * 100, 2)} %')
-                print(f'Val accuracy: {round(acc_val_on_max_test * 100, 2)} %')
-                print(f'Test accuracy: {round(max_acc_test * 100, 2)} %')
+                clf_final.fit(X_train, y_train)
+                p_train_final = clf_final.predict(X_train)
+                p_val_final = clf_final.predict(X_val)
+                p_test_final = clf_final.predict(X_test)
+
+                acc_train_final = metrics.accuracy_score(y_train, p_train_final)
+
+                acc_val_final = metrics.accuracy_score(y_val, p_val_final)
+                acc_test_final = metrics.accuracy_score(y_test, p_test_final)
+
+                mean_train_accuracy += acc_train_final
+                mean_test_accuracy += acc_test_final
+
+                print(f'Train accuracy: {round(acc_train_final * 100, 2)} %')
+                print(f'Val accuracy: {round(acc_val_final * 100, 2)} %')
+                print(f'Test accuracy: {round(acc_test_final * 100, 2)} %')
 
                 fig = plt.figure(dpi=500)
-                cm = confusion_matrix(y_test, p_test)
+                cm = confusion_matrix(y_test, p_test_final)
                 cm_display = ConfusionMatrixDisplay(cm).plot()
                 plt.title(f'{alg} - Confusion Matrix - Load {load} - {filename}')
                 plt.ylabel('True Labels')
@@ -211,8 +222,8 @@ for alg in algorithms:
 
                 if alg == 'DT':
                     fig = plt.figure(dpi=500)
-                    plot_tree(clf, filled=True, feature_names=dataset_test.columns.to_list(), class_names=class_names)
-                    plt.title(f"{alg} - Load {load} - {filename} - Accuracy: {round(acc_test * 100, 2)} %")
+                    plot_tree(clf_final, filled=True, feature_names=dataset_test.columns.to_list(), class_names=class_names)
+                    plt.title(f"{alg} - Load {load} - {filename} - Accuracy: {round(acc_test_final * 100, 2)} %")
                     path_alg_singleDf_plotsTree = path_alg_singleDf + '\\PlotsTree'
                     os.makedirs(path_alg_singleDf_plotsTree, exist_ok=True)
                     plt.savefig(f'{path_alg_singleDf_plotsTree}\\PlotTree_{load}_{filename}.jpg')
@@ -220,7 +231,7 @@ for alg in algorithms:
                     vet_val_feat_imp, vet_names_feat_imp = [], []
                     path_alg_singleDf_FeatImp = path_alg_singleDf + '\\Features Importance'
                     os.makedirs(path_alg_singleDf_FeatImp, exist_ok=True)
-                    for feat_num in range(len(clf.feature_importances_)):
+                    for feat_num in range(len(clf_final.feature_importances_)):
                         if clf.feature_importances_[feat_num] > 0:
                             vet_val_feat_imp.append(round(clf.feature_importances_[feat_num], 3))
                             vet_names_feat_imp.append(features_names[feat_num - 1])
@@ -239,14 +250,14 @@ for alg in algorithms:
                     plt.savefig(f'{path_alg_singleDf_FeatImp}\\FeatImp_{load}_{filename}.jpg')
 
                 if alg == 'DT':
-                    table_out.loc[loads.index(load)] = load, round(acc_train, 2), round(acc_test,
+                    table_out.loc[loads.index(load)] = load, round(acc_train_final, 2), round(acc_test_final,
                                                                                         2), best_params, dict_feat_imp
                 else:
-                    table_out.loc[loads.index(load)] = load, round(acc_train, 2), round(acc_test, 2), best_params
+                    table_out.loc[loads.index(load)] = load, round(acc_train_final, 2), round(acc_test_final, 2), best_params
 
-                plt.show()
+                # plt.show()
 
             print('\nMean train accuracy: ', round(mean_train_accuracy * 100 / len(loads), 2), ' %')
-            print('\nMean test accuracy: ', round(mean_test_accuracy * 100 / len(loads), 2), ' %')
+            print('Mean test accuracy: ', round(mean_test_accuracy * 100 / len(loads), 2), ' %')
             table_out.to_excel(f'{path_alg_singleDf}\\res_hyperopt.xlsx')
             table_out.to_pickle(f'{path_alg_singleDf}\\res_hyperopt.pkl')
