@@ -233,7 +233,7 @@ for alg in algorithms[1:2]:
                     os.makedirs(path_alg_singleDf_FeatImp, exist_ok=True)
                     for feat_num in range(len(clf_final.feature_importances_)):
                         if clf.feature_importances_[feat_num] > 0:
-                            vet_val_feat_imp.append(round(clf.feature_importances_[feat_num], 3))
+                            vet_val_feat_imp.append(round(clf_final.feature_importances_[feat_num], 3))
                             vet_names_feat_imp.append(features_names[feat_num - 1])
 
                     dict_feat_imp = dict(zip(vet_names_feat_imp, vet_val_feat_imp))

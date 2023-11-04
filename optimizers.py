@@ -28,7 +28,7 @@ label_encoder = LabelEncoder()
 fontsize = 12
 
 max_evals = 10
-n_optimizations = 500
+n_optimizations = 1000
 path_res = 'results_curr'
 path_input = 'dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
@@ -96,7 +96,7 @@ params_spaces = [
     }
 ]
 
-for alg in algorithms:
+for alg in algorithms[:1]:
     path_alg = path_res + f'\\{alg}'
     os.makedirs(path_alg, exist_ok=True)
 
@@ -233,7 +233,7 @@ for alg in algorithms:
                     os.makedirs(path_alg_singleDf_FeatImp, exist_ok=True)
                     for feat_num in range(len(clf_final.feature_importances_)):
                         if clf.feature_importances_[feat_num] > 0:
-                            vet_val_feat_imp.append(round(clf.feature_importances_[feat_num], 3))
+                            vet_val_feat_imp.append(round(clf_final.feature_importances_[feat_num], 3))
                             vet_names_feat_imp.append(features_names[feat_num - 1])
 
                     dict_feat_imp = dict(zip(vet_names_feat_imp, vet_val_feat_imp))
