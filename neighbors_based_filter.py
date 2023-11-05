@@ -190,12 +190,12 @@ for alg in algorithms:
                         new_f1 = metrics.f1_score(y_test, p_test_new)
                         new_prec = metrics.precision_score(y_test, p_test_new)
 
-                        """print(
-                            f'{load}) New test accuracy: {round(prev_acc_test * 100)} % - Past test accuracy: {round(new_acc_test * 100)} %')
+                        print(
+                            f'{load}) New test accuracy: {round(new_acc_test * 100)} % - Past test accuracy: {round(prev_acc_test * 100)} %')
                         print(f'{load}) New test precision: {round(new_prec * 100)} % - Past test precision: {round(prev_prec * 100)} %')
                         print(f'{load}) New test recall: {round(new_rec * 100)} % - Past test recall: {round(prev_rec * 100)} %')
-                        print(f'{load}) New test f1-score: {round(new_f1 * 100)} % - Past test f1-score: {round(prev_f1 * 100)} %')
-                        print('\n')"""
+                        print(f'{load}) New test f1-score: {round(new_f1 * 100, 1)} % - Past test f1-score: {round(prev_f1 * 100, 1)} %')
+                        print('\n')
 
                         av_acc_test += new_acc_test
                         av_f1_test += new_f1

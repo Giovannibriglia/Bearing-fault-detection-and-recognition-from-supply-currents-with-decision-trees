@@ -20,7 +20,6 @@ import random
 from sklearn.preprocessing import LabelEncoder
 from functools import partial
 from tqdm import tqdm
-
 warnings.filterwarnings('ignore')
 seed_value = 42
 random.seed(seed_value)
@@ -29,7 +28,7 @@ fontsize = 12
 
 max_evals = 10
 n_optimizations = 1000
-path_res = 'results_curr'
+path_res = 'results_curr2'
 path_input = 'dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
 
@@ -52,7 +51,10 @@ def select_clf(alg, params, n_classes):
 def objective(params, x_opt, y_opt, alg, n_classes):
     clf = select_clf(alg, params, n_classes)
 
-    kf = model_selection.StratifiedKFold(n_splits=10)
+    if n_classes == 2:
+        kf = model_selection.StratifiedKFold(n_splits=10)
+    else:
+        kf = model_selection.StratifiedKFold(n_splits=5)
 
     accuracies_split = []
     for idx in kf.split(X=x_opt, y=y_opt):
@@ -87,7 +89,7 @@ params_spaces = [
         # 'min_samples_leaf': hp.uniform('min_samples_leaf', 0.0, 0.5),
         # 'max_leaf_nodes': hp.randint('max_leaf_nodes', 20, 120)
     }, {
-        'n_neighbors': hp.randint('n_neighbors', 1, 60),
+        'n_neighbors': hp.randint('n_neighbors', 1, 50),
         'leaf_size': hp.randint('leaf_size', 3, 100),
         'p': hp.randint('p', 1, 5)
     }, {
@@ -96,7 +98,7 @@ params_spaces = [
     }
 ]
 
-for alg in algorithms[:1]:
+for alg in algorithms:
     path_alg = path_res + f'\\{alg}'
     os.makedirs(path_alg, exist_ok=True)
 

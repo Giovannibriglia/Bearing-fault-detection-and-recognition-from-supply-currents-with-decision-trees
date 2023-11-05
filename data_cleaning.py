@@ -101,7 +101,7 @@ for max_frequency in [375, 125, 75]:
 
         row_number = 0
         half_sample_rate = int(sample_rate_cutted / 2)
-
+        values_for_fft_plots = []
         for filename in glob.glob(f"{path_inputs}\*.csv"):
             with open(os.path.join(os.getcwd(), filename), "r") as f:
                     data = pd.read_csv(filename)
@@ -132,6 +132,9 @@ for max_frequency in [375, 125, 75]:
                             vet_Notch = notch_filter(vet=vet_Notch, notch_freq=notch_frequency, quality=10.0)
 
                         yfl, xfl = FFT(vet=vet_Notch, time_in_sec=1)
+                        if count == half_sample_rate and (indexR + indexT == 2):
+                            print('add')
+                            values_for_fft_plots.append(yfl)
 
                         if if_vis:
                             fig = plt.figure(dpi=600)
@@ -147,16 +150,18 @@ for max_frequency in [375, 125, 75]:
 
                             yfl_wrong, xfl_wrong = FFT(vet=vet_without_50ref, time_in_sec=1)
 
-                            fig = plt.figure(dpi=500)
-                            fig.suptitle(f'FFT D{indexD}-R{indexR}-T{indexT}', fontsize=fontsize+5)
-                            plt.plot(xfl[:500], yfl[:500], label='cleaned', linewidth=3)
-                            plt.plot(xfl_wrong[:500], yfl_wrong[:500], label='not cleaned')
+                            fig = plt.figure(dpi=600)
+                            fig.suptitle(f'FFT on D{indexD}-R{indexR}-T{indexT}', fontsize=fontsize+5)
+                            plt.plot(xfl_wrong[:500], yfl_wrong[:500], label='Before notch filters', linewidth=2)
+                            plt.plot(xfl[:500], yfl[:500], label='After notch filters', linewidth=2)
                             plt.legend(loc='best')
                             plt.xlabel('Hz', fontsize=fontsize)
                             plt.ylabel('Amplitude', fontsize=fontsize)
                             plt.tick_params(axis='x', labelsize=labelsize)
                             plt.tick_params(axis='y', labelsize=labelsize)
+                            plt.ylim(0, 1)
                             plt.grid()
+                            plt.savefig('FFT_HealtyCase_NotchFilters2.pdf')
                             plt.show()
 
                         row = []
@@ -205,6 +210,20 @@ for max_frequency in [375, 125, 75]:
                         df.loc[row_number] = row
                         row_number += 1
 
+        fig_subplots, axes = plt.subplots(3, 1, sharex=True, dpi=600)
+        x = np.arange(0, 500, 1)
+        azz = [': Healthy case', ': Damage on the Outer Ring', ': Brinnelling Damage']
+        for val in range(len(values_for_fft_plots)):
+            axes[val].plot(x, values_for_fft_plots[val][:500], linewidth=2)
+            axes[val].set_title(f'D{val+1}-R{indexR}-T{indexT} {azz[val]}', fontsize=fontsize + 5)
+            axes[val].set_ylabel('Amplitude', fontsize=fontsize)
+            axes[val].set_yticks([0.0, 0.25, 0.5])
+            axes[val].grid(True)
+        axes[len(values_for_fft_plots) - 1].set_xlabel('Hz', fontsize=fontsize)
+        plt.tight_layout()
+        # plt.savefig('ResultingSignal_CURR2.pdf')
+        plt.show()
+
         to_del = []
         for i in range(1, len(features)-1, 1):
             vet = df.iloc[1:, i]
@@ -215,7 +234,7 @@ for max_frequency in [375, 125, 75]:
         print('Removed features: ', to_del)
         df2 = df.drop(df.columns[to_del], axis=1, inplace=False)
 
-        df2.to_pickle(f'{path_saving}\\{max_frequency}Hz_{n_classes}classes.pkl')
+        # df2.to_pickle(f'{path_saving}\\{max_frequency}Hz_{n_classes}classes.pkl')
 
         """
         print('normalizing...')

@@ -198,5 +198,5 @@ for alg in algorithms:
                 plt.grid()
                 plt.tick_params(axis='x', labelsize=labelsize)
                 plt.tick_params(axis='y', labelsize=labelsize)
-                plt.savefig(f'{path_alg_singleDf_post_process}\\Sliding_window_filter_{filename}.pdf')
+                plt.savefig(f'{path_alg_singleDf_post_process}\\Consecutive_sliding_window_filter_{filename}.pdf')
                 plt.show()
