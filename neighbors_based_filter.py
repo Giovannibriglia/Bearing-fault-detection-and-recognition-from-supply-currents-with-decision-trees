@@ -141,7 +141,7 @@ for alg in algorithms:
                     av_f1_test = 0
                     av_rec_test = 0
                     print('\n*************************************')
-                    print('k = ', k_bits, 'bit before and after')
+                    print(f'k = {k_bits} bit before and after - {alg} - {filename}')
 
                     for load in loads:
                         df_in = df_input.copy()
@@ -213,8 +213,7 @@ for alg in algorithms:
                     vetF1.append(round(av_f1_test / len(loads) * 100, 2))
                     vetAverages.append(average_averages)
 
-                    print(f'\n*******')
-                    print(f'Average test accuracy: {round(av_acc_test / len(loads) * 100, 2)} % ')
+                    print(f'\nAverage test accuracy: {round(av_acc_test / len(loads) * 100, 2)} % ')
                     print(f'Average test recall: {round(av_rec_test / len(loads) * 100, 2)} % ')
                     print(f'Average test f1-score: {round(av_f1_test / len(loads) * 100, 2)} % ')
                     print(f'Average test precision: {round(av_prec_test / len(loads) * 100, 2)} % ')
@@ -237,6 +236,6 @@ for alg in algorithms:
                 plt.grid()
                 plt.tick_params(axis='x', labelsize=labelsize)
                 plt.tick_params(axis='y', labelsize=labelsize)
-                plt.savefig(f'{path_alg_singleDf_post_process}\\Neighbors_based_filter.pdf')
+                plt.savefig(f'{path_alg_singleDf_post_process}\\Neighbors_based_filter_{filename}.pdf')
                 plt.show()
 

@@ -117,7 +117,7 @@ for alg in algorithms:
                     list_with_damaged = []
                     list_without_damage = []
                     print('\n*************************************')
-                    print('Threshold: k = ', k_bits, 'bits not consecutives')
+                    print(f'Threshold: k = {k_bits} bits not consecutives - {alg} - {filename}')
 
                     for load in loads:
                         df_in = df_input.copy()
@@ -183,5 +183,5 @@ for alg in algorithms:
                 plt.grid()
                 plt.tick_params(axis='x', labelsize=labelsize)
                 plt.tick_params(axis='y', labelsize=labelsize)
-                plt.savefig(f'{path_alg_singleDf_post_process}\\Sliding_window_filter.pdf')
+                plt.savefig(f'{path_alg_singleDf_post_process}\\Sliding_window_filter_{filename}.pdf')
                 plt.show()
