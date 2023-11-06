@@ -228,7 +228,7 @@ for alg in algorithms:
                 plt.plot(x_axis, vetF1, linewidth=3)
                 plt.plot(x_axis, vetPrec, linewidth=3)
                 plt.plot(x_axis, vetAverages, linewidth=5)
-                plt.xlabel('K bits', fontsize=fontsize)
+                plt.xlabel('B bits considered', fontsize=fontsize)
                 plt.ylabel('Metrics [%]', fontsize=fontsize)
                 plt.xticks(x_axis, fontsize=labelsize)
                 plt.yticks(fontsize=labelsize)
