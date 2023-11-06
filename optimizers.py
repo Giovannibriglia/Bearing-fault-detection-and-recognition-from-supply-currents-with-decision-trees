@@ -28,7 +28,7 @@ fontsize = 12
 
 max_evals = 10
 n_optimizations = 1000
-path_res = 'results_curr2'
+path_res = 'results_curr'
 path_input = 'dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
 
@@ -54,7 +54,7 @@ def objective(params, x_opt, y_opt, alg, n_classes):
     if n_classes == 2:
         kf = model_selection.StratifiedKFold(n_splits=10)
     else:
-        kf = model_selection.StratifiedKFold(n_splits=5)
+        kf = model_selection.KFold(n_splits=5)
 
     accuracies_split = []
     for idx in kf.split(X=x_opt, y=y_opt):
