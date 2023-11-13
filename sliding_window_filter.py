@@ -175,7 +175,7 @@ for alg in algorithms:
                 plt.plot(x_axis, vet_undamage, linewidth=3)
                 plt.plot(x_axis, vet_average, linewidth=3)
                 plt.xlabel('Thresholds', fontsize=fontsize)
-                plt.ylabel('Correctness [%]', fontsize=fontsize)
+                plt.ylabel('Average accuracy [%]', fontsize=fontsize)
                 plt.xticks(x_axis, fontsize=labelsize)
                 plt.yticks(fontsize=labelsize)
                 plt.legend(['Damaged', 'Undamaged', 'Average'], fontsize=13)
