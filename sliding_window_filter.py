@@ -25,7 +25,6 @@ start_k, max_k, step_k = 0, 20, 1
 path_res = 'results_curr'
 path_input = 'dataframes_curr'
 os.makedirs(path_res, exist_ok=True)
-n_most_imp_feat = 6
 
 
 def get_best_parameters(df_par, par1, par2):
