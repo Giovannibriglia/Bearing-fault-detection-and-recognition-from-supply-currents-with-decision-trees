@@ -12,8 +12,8 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-sample_rate_cutted = 25000
-seconds_of_acquistion = 10
+sample_rate = 25600
+seconds_of_acquisition = 10
 path_inputs = 'Curr_SV_NO_offset'
 path_saving = 'dataframes_curr'
 fontsize = 12
@@ -56,17 +56,22 @@ def removing_50Hz_reference(data, time_in_sec, if_vis):
     return vetFin_no_offset
 
 
-def notch_filter(vet, notch_freq, quality):
-    b_notch, a_notch = signal.iirnotch(notch_freq, quality, sample_rate_cutted)
+def design_notch_filter(center_freq, Q, fs):
+    # Design a notch filter
+    nyquist = 0.5 * fs
+    notch_freq = center_freq / nyquist
+    b, a = signal.iirnotch(notch_freq, Q)
+    return b, a
 
-    outputSignal = signal.filtfilt(b_notch, a_notch, vet)
-
-    return outputSignal
+def apply_notch_filter(data, b, a):
+    # Apply the notch filter to the data
+    filtered_data = signal.lfilter(b, a, data)
+    return filtered_data
 
 
 def FFT(vet, time_in_sec):
-    n = sample_rate_cutted * time_in_sec
-    T = 1 / 25600  # 25600 is the real sample rate
+    n = len(vet)
+    T = time_in_sec / n
     y = vet
     yf = fft(y)
     yfl = 2 * abs(yf[:n // 2] / n)
@@ -105,7 +110,7 @@ for max_frequency in [375, 125, 75]:
         df = pd.DataFrame([[0] * len(features)], columns=features)
 
         row_number = 0
-        half_sample_rate = int(sample_rate_cutted / 2)
+        half_sample_rate = int(sample_rate / 2)
         values_for_fft_plots = []
         for filename in glob.glob(f"{path_inputs}\*.csv"):
             with open(os.path.join(os.getcwd(), filename), "r") as f:
@@ -121,7 +126,7 @@ for max_frequency in [375, 125, 75]:
 
                 for count in range(half_sample_rate, len(data) + half_sample_rate, half_sample_rate):
 
-                    if count == half_sample_rate and indexT + indexR + indexD == 3:
+                    if count == half_sample_rate and indexT + indexR == 20:
                         if_vis = True
                     else:
                         if_vis = False
@@ -133,12 +138,16 @@ for max_frequency in [375, 125, 75]:
                     vet_without_50ref = removing_50Hz_reference(data=input_data, time_in_sec=1, if_vis=if_vis)
 
                     vet_Notch = vet_without_50ref.copy()
+                    Q = 30  # Quality factor of the notch filter
                     for notch_frequency in range(50, 550, 50):
-                        vet_Notch = notch_filter(vet=vet_Notch, notch_freq=notch_frequency, quality=10.0)
+                        b, a = design_notch_filter(notch_frequency, Q, sample_rate)
+                        vet_Notch = apply_notch_filter(vet_Notch, b, a)
 
                     yfl, xfl = FFT(vet=vet_Notch, time_in_sec=1)
-                    if count == half_sample_rate and (indexR + indexT == 2):
+                    yfl_wrong, xfl_wrong = FFT(vet=vet_without_50ref, time_in_sec=1)
+                    if count == half_sample_rate and indexT == 1 and indexR == 1:
                         values_for_fft_plots.append(yfl)
+                        values_for_fft_plots.append(yfl_wrong)
 
                     if if_vis:
                         fig = plt.figure(dpi=600)
@@ -214,19 +223,29 @@ for max_frequency in [375, 125, 75]:
                     df.loc[row_number] = row
                     row_number += 1
 
-        fig_subplots, axes = plt.subplots(3, 1, sharex=True, dpi=600)
-        x = np.arange(0, 500, 1)
-        azz = [': Healthy case', ': Damage on the Outer Ring', ': Brinnelling Damage']
-        for val in range(len(values_for_fft_plots)):
-            axes[val].plot(x, values_for_fft_plots[val][:500], linewidth=2)
-            axes[val].set_title(f'D{val + 1}-R{indexR}-T{indexT} {azz[val]}', fontsize=fontsize + 5)
-            axes[val].set_ylabel('Amplitude', fontsize=fontsize)
-            axes[val].set_yticks([0.0, 0.25, 0.5])
-            axes[val].grid(True)
-        axes[len(values_for_fft_plots) - 1].set_xlabel('Hz', fontsize=fontsize)
-        plt.tight_layout()
-        # plt.savefig('ResultingSignal_CURR2.pdf')
-        plt.show()
+        if max_frequency == 375 and n_classes == 2:
+            fig_subplots, axes = plt.subplots(3, 1, sharex=True, dpi=600)
+            fig_subplots.suptitle('Current Spectra Resulting', fontsize=fontsize + 3)
+            x = np.arange(0, 300, 1)
+            titles = [': Healthy case', ': Damage on the Outer Ring', ': Brinnelling Damage']
+            for val in range(0, len(values_for_fft_plots), 2):
+                if int(val / 2) == 0:
+                    axes[int(val / 2)].plot(x, values_for_fft_plots[val][:300], linewidth=3, label='After Notch')
+                    axes[int(val / 2)].plot(x, values_for_fft_plots[val + 1][:300], linewidth=1, label='Before Notch')
+                    axes[int(val / 2)].legend(loc='best')
+                else:
+                    axes[int(val / 2)].plot(x, values_for_fft_plots[val][:300], linewidth=3)
+                    axes[int(val / 2)].plot(x, values_for_fft_plots[val + 1][:300], linewidth=1)
+
+                axes[int(val / 2)].set_title(f'D{int(val / 2) + 1}-R{1}-T{1} {titles[int(val / 2)]}',
+                                             fontsize=fontsize + 5)
+                axes[int(val / 2)].set_ylabel('Amplitude', fontsize=fontsize)
+                axes[int(val / 2)].set_xlabel('Hz', fontsize=fontsize)
+                axes[int(val/2)].set_ylim(0, 0.8)
+                axes[int(val / 2)].grid(True)
+            plt.tight_layout()
+            # plt.savefig('ResultingSignal_Curr.pdf')
+            plt.show()
 
         to_del = []
         for i in range(1, len(features) - 1, 1):
