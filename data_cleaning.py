@@ -126,7 +126,7 @@ for max_frequency in [375, 125, 75]:
 
                 for count in range(half_sample_rate, len(data) + half_sample_rate, half_sample_rate):
 
-                    if count == half_sample_rate and indexT + indexR == 20:
+                    if count == half_sample_rate and indexT + indexR == 2:
                         if_vis = True
                     else:
                         if_vis = False
