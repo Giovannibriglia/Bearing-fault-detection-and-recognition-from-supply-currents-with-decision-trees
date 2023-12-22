@@ -57,14 +57,13 @@ def removing_50Hz_reference(data, time_in_sec, if_vis):
 
 
 def design_notch_filter(center_freq, Q, fs):
-    # Design a notch filter
     nyquist = 0.5 * fs
     notch_freq = center_freq / nyquist
     b, a = signal.iirnotch(notch_freq, Q)
     return b, a
 
+
 def apply_notch_filter(data, b, a):
-    # Apply the notch filter to the data
     filtered_data = signal.lfilter(b, a, data)
     return filtered_data
 
@@ -115,6 +114,7 @@ for max_frequency in [375, 125, 75]:
         for filename in glob.glob(f"{path_inputs}\*.csv"):
             with open(os.path.join(os.getcwd(), filename), "r") as f:
                 data = pd.read_csv(filename)
+
                 name = filename.replace(f'{path_inputs}\\', '')
                 name = name.replace('.csv', '')
                 print(name, '-', n_classes, 'classes - until ', max_frequency, ' Hz')
@@ -133,12 +133,11 @@ for max_frequency in [375, 125, 75]:
 
                     in1 = count - int(half_sample_rate)
                     in2 = count + int(half_sample_rate)
-
                     input_data = data.iloc[in1:in2, 0]
                     vet_without_50ref = removing_50Hz_reference(data=input_data, time_in_sec=1, if_vis=if_vis)
 
                     vet_Notch = vet_without_50ref.copy()
-                    Q = 30  # Quality factor of the notch filter
+                    Q = 50  # Quality factor of the notch filter
                     for notch_frequency in range(50, 550, 50):
                         b, a = design_notch_filter(notch_frequency, Q, sample_rate)
                         vet_Notch = apply_notch_filter(vet_Notch, b, a)
@@ -226,25 +225,25 @@ for max_frequency in [375, 125, 75]:
         if max_frequency == 375 and n_classes == 2:
             fig_subplots, axes = plt.subplots(3, 1, sharex=True, dpi=600)
             fig_subplots.suptitle('Current Spectra Resulting', fontsize=fontsize + 3)
-            x = np.arange(0, 300, 1)
+            x = np.arange(0, 500, 1)
             titles = [': Healthy case', ': Damage on the Outer Ring', ': Brinnelling Damage']
             for val in range(0, len(values_for_fft_plots), 2):
                 if int(val / 2) == 0:
-                    axes[int(val / 2)].plot(x, values_for_fft_plots[val][:300], linewidth=3, label='After Notch')
-                    axes[int(val / 2)].plot(x, values_for_fft_plots[val + 1][:300], linewidth=1, label='Before Notch')
-                    axes[int(val / 2)].legend(loc='best')
+                    axes[int(val / 2)].plot(x, values_for_fft_plots[val][:500], linewidth=2, label='After Notch')
+                    # axes[int(val / 2)].plot(x, values_for_fft_plots[val + 1][:500], linewidth=1, label='Before Notch')
+                    # axes[int(val / 2)].legend(loc='best')
                 else:
-                    axes[int(val / 2)].plot(x, values_for_fft_plots[val][:300], linewidth=3)
-                    axes[int(val / 2)].plot(x, values_for_fft_plots[val + 1][:300], linewidth=1)
+                    axes[int(val / 2)].plot(x, values_for_fft_plots[val][:500], linewidth=2)
+                    # axes[int(val / 2)].plot(x, values_for_fft_plots[val + 1][:500], linewidth=1)
 
                 axes[int(val / 2)].set_title(f'D{int(val / 2) + 1}-R{1}-T{1} {titles[int(val / 2)]}',
                                              fontsize=fontsize + 5)
                 axes[int(val / 2)].set_ylabel('Amplitude', fontsize=fontsize)
                 axes[int(val / 2)].set_xlabel('Hz', fontsize=fontsize)
-                axes[int(val/2)].set_ylim(0, 0.8)
+                # axes[int(val / 2)].set_ylim(0, 0.5)
                 axes[int(val / 2)].grid(True)
             plt.tight_layout()
-            # plt.savefig('ResultingSignal_Curr.pdf')
+            plt.savefig('ResultingSignal_Curr2.pdf')
             plt.show()
 
         to_del = []
